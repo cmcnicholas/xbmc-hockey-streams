@@ -10,3 +10,5 @@ The Xbmc Hockey Streams plugin currently offers the following set of features.
 * Searching for streams by date
 * Searching for streams by team
 * List upcoming streams
+
+Download the latest release for: [Gotham or Later](https://github.com/fungus1487/xbmc-hockey-streams/raw/master/release/xbmc-hockey-streams.gotham.2.8.1.zip "Gotham or Later") or [Pre Gotham](https://github.com/fungus1487/xbmc-hockey-streams/raw/master/release/xbmc-hockey-streams.pre-gotham.2.8.1.zip "Pre Gotham")
