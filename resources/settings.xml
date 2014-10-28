@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+	<category label="100028">
+		<setting id="username" type="text" label="100001" default="" />
+		<setting id="password" type="text" label="100002" default="" />
+		<setting id="istream" type="bool" label="100016" default="false" />
+		<setting id="flash" type="bool" label="100017" default="false" />
+		<setting id="rtmp" type="bool" label="100026" default="true" />
+		<setting id="wmv" type="bool" label="100027" default="true" />
+		<setting id="shortnames" type="bool" label="100020" default="false" />
+		<setting id="location" type="labelenum" label="10025" values="Auto|Asia - Singapore|Europe - Amsterdam|Europe - London|North America - Central|North America - East|North America - Teksavvy ONLY|North America - West|North America - East Canada" default="Auto" />
+	</category>
+</settings>
