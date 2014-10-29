@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
-Steps to install xbmc-ball-streams addon:
+Steps to install xbmc-hockey-streams addon:
 
 1. Browse to the download location: 
     > https://github.com/fungus1487/xbmc-hockey-streams/tree/master/release
