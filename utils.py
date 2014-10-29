@@ -3,20 +3,23 @@ import urllib
 import sys
 
 # xbmc-hockey-streams
-# author: craig mcnicholas
-# contact: craig@designdotworks.co.uk
+# author: craig mcnicholas, andrew wise
+# contact: craig@designdotworks.co.uk, zergcollision@gmail.com
 
 # Represents an enumeration for application modes
 class Mode:
     HOME = 1
-    ARCHIVES = 2
-    ARCHIVES_BY_DATE = 3
-    ARCHIVES_BY_DATE_YEAR = 4
-    ARCHIVES_BY_DATE_MONTH = 5
-    ARCHIVES_BY_DATE_DAY = 6
-    ARCHIVES_BY_TEAM = 7
-    ARCHIVES_BY_TEAM_EVENTS = 8
-    LIVE = 9
+    ONDEMAND = 2
+    ONDEMAND_BYDATE = 3
+    ONDEMAND_BYDATE_YEARMONTH = 4
+    ONDEMAND_BYDATE_YEARMONTH_DAY = 5
+    ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT = 6
+    ONDEMAND_BYTEAM = 7
+    ONDEMAND_BYTEAM_LEAGUE = 8
+    ONDEMAND_BYTEAM_LEAGUE_TEAM = 9
+    ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT = 10
+    LIVE = 11
+    LIVE_EVENT = 12
 
 # Method to get the parameters for the current view
 # @return an array of parameters
@@ -64,10 +67,12 @@ def parseParamString(params, key):
 # @param image the image to display as the thumbnail
 # @param totalItems [optional] the total number of items to add to show progress
 # @return a flag indicating success
-def addLink(name, url, image, totalItems = None):
+def addLink(name, url, image, totalItems = None, showfanart = None):
     ok = True
-    item = xbmcgui.ListItem(name, iconImage = 'DefaultVideo.png', thumbnailImage = image)
+    item = xbmcgui.ListItem(name, iconImage = 'DefaultVideo.png', thumbnailImage = 'special://home/addons/plugin.video.xbmc-hockey-streams/Ice-Hockey-icon.png')
     item.setInfo(type = 'Video', infoLabels = { 'Title': name })
+    if showfanart:
+        item.setProperty( "Fanart_Image", 'special://home/addons/plugin.video.xbmc-hockey-streams/fanart.jpg' )
     if totalItems == None:
         ok = xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = url, listitem = item)
     else:
@@ -81,14 +86,16 @@ def addLink(name, url, image, totalItems = None):
 # @param params a dictionary of params to append
 # @param totalItems [optional] the total number of items to add to show progress
 # @return a flag indicating success
-def addDir(name, mode, image, params, totalItems = None):
+def addDir(name, mode, image, params, totalItems = None, showfanart = None):
     url = sys.argv[0] + "?mode=" + str(mode)
     if params != None:
         for k, v in params.iteritems():
             url += '&' + k + '=' + urllib.quote_plus(v)
     ok = True
-    item = xbmcgui.ListItem(name, iconImage = 'DefaultFolder.png', thumbnailImage = image)
+    item = xbmcgui.ListItem(name, iconImage = 'DefaultFolder.png', thumbnailImage = 'special://home/addons/plugin.video.xbmc-hockey-streams/Ice-Hockey-icon.png')
     item.setInfo(type = 'Video', infoLabels = { 'Title': name })
+    if showfanart:
+        item.setProperty( "Fanart_Image", 'special://home/addons/plugin.video.xbmc-hockey-streams/fanart.jpg' )
     if totalItems == None:
         ok = xbmcplugin.addDirectoryItem(handle = int(sys.argv[1]), url = url, listitem = item, isFolder = True)
     else:
