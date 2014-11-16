@@ -804,6 +804,9 @@ if enableleaguefilter:
     showohl = addon.getSetting('showohl')
     if showohl != None and showohl.lower() == 'true':
         leagueFilter.append('OHL')
+    showppv = addon.getSetting('showppv')
+    if showppv != None and showppv.lower() == 'true':
+        leagueFilter.append('PPV')
     showqmjhl = addon.getSetting('showqmjhl')
     if showqmjhl != None and showqmjhl.lower() == 'true':
         leagueFilter.append('QMJHL')
