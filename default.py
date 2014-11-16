@@ -3,7 +3,7 @@ import hockeystreams, utils
 import os, datetime, threading, random, time
 
 # xbmc-hockey-streams
-# author: craig mcnicholas, andrew wise
+# author: craig mcnicholas, swedemon
 # contact: craig@designdotworks.co.uk, zergcollision@gmail.com
 
 # deals with a bug where errors are thrown 
@@ -20,6 +20,8 @@ def HOME():
     utils.addDir(addon.getLocalizedString(100005), utils.Mode.ONDEMAND, '', None, 2, showfanart)
     utils.addDir(addon.getLocalizedString(100006), utils.Mode.LIVE, '', None, 2, showfanart)
 
+    setViewMode()
+
 # Method to draw the archives screen
 def ONDEMAND():
     print 'ONDEMAND()'
@@ -28,6 +30,8 @@ def ONDEMAND():
     
     # Append Recent day events
     ONDEMAND_RECENT(session)
+
+    setViewMode()
 
 # Method to draw the archives by date screen
 # which scrapes the external source and presents
@@ -61,6 +65,11 @@ def ONDEMAND_BYDATE(session):
         }
         utils.addDir(date.strftime('%B %Y'), utils.Mode.ONDEMAND_BYDATE_YEARMONTH, '', params, totalItems, showfanart)
 
+    # Add custom date directory
+    utils.addDir('[ Custom Date ]', utils.Mode.ONDEMAND_BYDATE_CUSTOM, '', None, 2, showfanart)
+
+    setViewMode()
+
 # Method to draw the on-demand by date screen
 # which scrapes the external source and presents
 # a list of days for a given year and month of archives
@@ -92,6 +101,8 @@ def ONDEMAND_BYDATE_YEARMONTH(session, year, month):
         }
         utils.addDir(date.strftime('%A %d %B %Y'), utils.Mode.ONDEMAND_BYDATE_YEARMONTH_DAY, '', params, totalItems, showfanart)
 
+    setViewMode()
+
 # Method to draw the archives by date screen
 # which scrapes the external source and presents
 # a list of on-demand events for a given day
@@ -108,7 +119,7 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY(session, year, month, day):
     except Exception as e:
         print 'Warning:  No events found for date: ' + str(date) + ' Msg: ' + str(e)
         return
-        
+
     totalItems = len(events)
 
     for event in events:
@@ -129,12 +140,20 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY(session, year, month, day):
         matchupStr = awayTeam + ' @ ' + homeTeam
         if awayTeam == '' or homeTeam == '': # Indicates special event
             matchupStr = awayTeam + homeTeam
-        if feedType == 'Home Feed':
+        if event.feedType == 'Home Feed':
             matchupStr = matchupStr + '*'
-        elif feedType == 'Away Feed':
+        elif event.feedType == 'Away Feed':
             matchupStr = awayTeam + '* @ ' + homeTeam
+        # Build feedStr
+        feedStr = ''
+        if event.feedType == None or event.feedType == '' or event.feedType == 'Home Feed' or event.feedType == 'Away Feed':
+            feedStr = ''
+        elif event.feedType.endswith(' Feed'):
+            feedStr = ' - ' + event.feedType[:len(event.feedType)-5]
+        else:
+            feedStr = ' - ' + event.feedType
         # Build title
-        title = event.event + ': ' + matchupStr + dateStr
+        title = event.event + ': ' + matchupStr + dateStr + feedStr
         if event.homeTeam == session.favteam or event.awayTeam == session.favteam:
             title = '[COLOR red][B]' + title + '[/B][/COLOR]'
 
@@ -145,12 +164,7 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY(session, year, month, day):
         }
         utils.addDir(title, utils.Mode.ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT, '', params, totalItems, showfanart)
 
-    # Set view mode
-    if viewmode != None:
-        try:
-            xbmc.executebuiltin('Container.SetViewMode(' + viewmode + ')')
-        except Exception as e:
-            print 'Warning:  Unable to set view mode:  ' + str(e)
+    setViewMode()
 
 # Method to draw the archives by date screen
 # which scrapes the external source and presents
@@ -164,7 +178,7 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, eventId, feedType, dateStr):
     # Build streams
     onDemandStream = hockeystreams.onDemandEventStreams(session, eventId, location)
 
-    totalItems = 6 # max possible
+    totalItems = 10 # max possible
 
     if onDemandStream == None or onDemandStream.streamSet == None:
         return None
@@ -179,43 +193,146 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, eventId, feedType, dateStr):
         matchupStr = matchupStr + '*'
     elif feedType == 'Away Feed':
         matchupStr = awayTeam + '* @ ' + homeTeam
+    # Build feedStr
+    feedStr = ''
+    if feedType == None or feedType == '' or feedType == 'Home Feed' or feedType == 'Away Feed':
+        feedStr = ''
+    elif feedType.endswith(' Feed'):
+        feedStr = ' - ' + feedType[:len(feedType)-5]
+    else:
+        feedStr = ' - ' + feedType
     # Build title
     title = onDemandStream.event + ': ' + matchupStr + dateStr
 
     if flash and onDemandStream.streamSet['flash'] != None:
-        suffix = ' [Flash]'
-        utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
+        if 'HD.' in onDemandStream.streamSet['flash']and resolution != 'SD Only':
+            suffix = ' [Flash HD]' + feedStr
+            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
+        elif 'SD.' in onDemandStream.streamSet['flash'] and resolution != 'HD Only':
+            suffix = ' [Flash SD]' + feedStr
+            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
+        else:
+            suffix = ' [Flash]' + feedStr
+            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
     if istream and resolution != 'SD Only' and onDemandStream.streamSet['istream.hd'] != None:
-        suffix = ' [iStream HD]'
+        suffix = ' [iStream HD]' + feedStr
         utils.addLink(title + suffix, onDemandStream.streamSet['istream.hd'], '', totalItems, showfanart)
     if istream and resolution != 'HD Only' and onDemandStream.streamSet['istream.sd'] != None:
-        suffix = ' [iStream SD]'
+        suffix = ' [iStream SD]' + feedStr
         utils.addLink(title + suffix, onDemandStream.streamSet['istream.sd'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
-    if istream and resolution == 'All' and onDemandStream.streamSet['istream'] != None:
-        suffix = ' [iStream]'
+    if istream and resolution == 'All' and onDemandStream.streamSet['istream'] != None and onDemandStream.streamSet['istream'] != onDemandStream.streamSet['istream.hd']:
+        suffix = ' [iStream]' + feedStr
         utils.addLink(title + suffix, onDemandStream.streamSet['istream'], '', totalItems, showfanart)
     if wmv and onDemandStream.streamSet['wmv'] != None:
-        suffix = ' [WMV]'
+        suffix = ' [WMV]' + feedStr
         utils.addLink(title + suffix, onDemandStream.streamSet['wmv'], '', totalItems, showfanart)
 
     try:
         hTeam = onDemandStream.homeTeam
         dStr = datetime.datetime.strptime(dateStr, ' - %d %b \'%y')
-        if showhighlight and showcondensed:
-            HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, hTeam, dStr)
-        elif showhighlight:
-            HIGHLIGHTS_BYTEAM_TEAMDATE(session, hTeam, dStr)
-        elif showcondensed:
-            CONDENSEDGAMES_BYTEAM_TEAMDATE(session, hTeam, dStr)
+        HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, hTeam, dStr)
     except Exception as e:
         print 'Error initializing highlights/condensed: ' + str(e)
 
-    # Set view mode
-    if viewmode != None:
-        try:
-            xbmc.executebuiltin('Container.SetViewMode(' + viewmode + ')')
-        except Exception as e:
-            print 'Warning:  Unable to set view mode:  ' + str(e)
+    setViewMode()
+
+# Method to draw a list of recent month/years
+# to custom search on-demand archives
+def ONDEMAND_BYDATE_CUSTOM(session):
+    print 'ONDEMAND_BYDATE_CUSTOM(session)'
+
+    a = datetime.datetime.today()
+    daysBack = 800 # Could be an addon setting
+    dateStrList = []
+    for x in range (0, daysBack):
+        nextDate = a - datetime.timedelta(days = x)
+        monthYear = nextDate.strftime('%B %Y')
+        if (dateStrList.count(monthYear)==0):
+            dateStrList.append(monthYear)
+            params = {
+                'year': str(nextDate.year),
+                'month': str(nextDate.month)
+            }
+            utils.addDir(monthYear, utils.Mode.ONDEMAND_BYDATE_CUSTOM_YEARMONTH, '', params, 17, showfanart)
+
+    setViewMode()
+
+# Method to draw a list of days for a given month/year
+# to custom search on-demand archives
+def ONDEMAND_BYDATE_CUSTOM_YEARMONTH(session, year, month):
+    print 'ONDEMAND_BYDATE_CUSTOM_YEARMONTH(session, year, month)'
+    print 'Year: ' + str(year)
+    print 'Month: ' + str(month)
+
+    currentDay = datetime.date.today()
+    nextMonthDay = datetime.date(year, month, 1) + datetime.timedelta(days = 31)
+    lastMonthDay = datetime.date(nextMonthDay.year, nextMonthDay.month, 1) - datetime.timedelta(days = 1)
+    daysBack = int(lastMonthDay.day)
+
+    # COMMENTED THIS OUT - CRASHES XBMC TOO OFTEN EXECUTING TOO MANY API REQUESTS SO QUICKLY
+    # if lastMonthDay < currentDay or currentDay.day > 16:
+        # params = {
+            # 'year': str(year),
+            # 'month': str(month),
+            # 'day': str(16),
+            # 'numberOfDays': str(16)
+        # }
+        # if str(lastMonthDay.day) == '31':
+            # title = '[ Deep Search ' + lastMonthDay.strftime('%B') + ' 16th to ' + str(lastMonthDay.day) + 'st ]'
+        # else:
+            # title = '[ Deep Search ' + lastMonthDay.strftime('%B') + ' 16th to ' + str(lastMonthDay.day) + 'th ]'
+        # utils.addDir(title, utils.Mode.ONDEMAND_BYDATE_CUSTOM_YEARMONTH_RANGE, '', params, 33, showfanart)
+    # if lastMonthDay < currentDay or currentDay.day > 1:
+        # params = {
+            # 'year': str(year),
+            # 'month': str(month),
+            # 'day': str(1),
+            # 'numberOfDays': str(15)
+        # }
+        # title = '[ Deep Search ' + lastMonthDay.strftime('%B') + ' 1st to 15th ]'
+        # utils.addDir(title, utils.Mode.ONDEMAND_BYDATE_CUSTOM_YEARMONTH_RANGE, '', params, 33, showfanart)
+
+    for x in range (0, daysBack):
+        nextDate = lastMonthDay - datetime.timedelta(days = x)
+        if nextDate <= currentDay:
+            params = {
+                'year': str(nextDate.year),
+                'month': str(nextDate.month),
+                'day': str(nextDate.day)
+            }
+            utils.addDir(nextDate.strftime('%A %d %B %Y'), utils.Mode.ONDEMAND_BYDATE_YEARMONTH_DAY, '', params, 33, showfanart)
+    
+    setViewMode()
+
+# Method to populate a date range of events
+# which scrapes the external source and presents
+# a list of events within a date range
+def ONDEMAND_BYDATE_CUSTOM_YEARMONTH_RANGE(session, year, month, day, numberOfDays):
+    print 'ONDEMAND_RECENT(session)'
+    print 'year: ' + str(year)
+    print 'month: ' + str(month)
+    print 'day: ' + str(day)
+    print 'numberOfDays: ' + str(numberOfDays)
+
+    startDate = datetime.date(year, month, day)
+
+    # Loop daysback to Build event list
+    i = abs(numberOfDays)-1
+    while i >= 0:
+        # get current date
+        nextDate = startDate + datetime.timedelta(i)
+        
+        # exit on new month
+        if nextDate.month != month:
+            continue
+
+        # Build events for day
+        ONDEMAND_BYDATE_YEARMONTH_DAY(session, nextDate.year, nextDate.month, nextDate.day)
+
+        # Increment loop to avoid TO INFINITY AND BEYOND!!
+        i -= 1
+
+    setViewMode()
 
 # Method to draw the archives by team screen
 # which scrapes the external source and presents
@@ -228,6 +345,8 @@ def ONDEMAND_BYTEAM(session):
 
     # Count total number of items for ui
     totalItems = len(teams)
+
+    utils.addDir('[ All Teams ]', utils.Mode.ONDEMAND_BYTEAM_LEAGUE, '', None, totalItems, showfanart)
 
     # Add directories for teams
     league = []
@@ -243,12 +362,14 @@ def ONDEMAND_BYTEAM(session):
                 title = '[COLOR red][B]' + title + '[/B][/COLOR]'
             utils.addDir(title, utils.Mode.ONDEMAND_BYTEAM_LEAGUE, '', params, totalItems, showfanart)
 
+    setViewMode()
+
 # Method to draw the archives by league screen
 # which scrapes the external source and presents
 # a list of team names
 def ONDEMAND_BYTEAM_LEAGUE(session, league):
     print 'ONDEMAND_BYTEAM_LEAGUE(session, league)'
-    print 'League: ' + league
+    print 'League: ' + str(league)
 
     # Retrieve the teams
     teams = hockeystreams.teams(session, league)
@@ -263,9 +384,13 @@ def ONDEMAND_BYTEAM_LEAGUE(session, league):
             'team': team.name
         }
         title = team.name
+        if league == None and team.league != None:
+            title = team.league + ': ' + team.name
         if team.name == session.favteam:
             title = '[COLOR red][B]' + title + '[/B][/COLOR]'
         utils.addDir(title, utils.Mode.ONDEMAND_BYTEAM_LEAGUE_TEAM, '', params, totalItems, showfanart)
+
+    setViewMode()
 
 # Method to draw the archives by team screen
 # which scrapes the external source and presents
@@ -281,13 +406,10 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM(session, league, team):
     totalItems = len(events)
 
     for event in events:
-        # Check global league filter
-        if enableleaguefilter and leagueFilter.count(event.event) == 0:
-            continue
-
         # Check league filter
-        if league != None and len(league) > 0 and league != event.event:
-            continue # skip to next event
+        if league != None and len(league) > 0 and event.event != None and len(event.event) > 0:
+            if not event.event.startswith(league):
+                continue # skip to next event
 
         # Create datetime for string formatting
         parts = event.date.split('/')
@@ -301,12 +423,20 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM(session, league, team):
         matchupStr = awayTeam + ' @ ' + homeTeam
         if awayTeam == '' or homeTeam == '': # Indicates special event
             matchupStr = awayTeam + homeTeam
-        if feedType == 'Home Feed':
+        if event.feedType == 'Home Feed':
             matchupStr = matchupStr + '*'
-        elif feedType == 'Away Feed':
+        elif event.feedType == 'Away Feed':
             matchupStr = awayTeam + '* @ ' + homeTeam
+        # Build feedStr
+        feedStr = ''
+        if event.feedType == None or event.feedType == '' or event.feedType == 'Home Feed' or event.feedType == 'Away Feed':
+            feedStr = ''
+        elif event.feedType.endswith(' Feed'):
+            feedStr = ' - ' + event.feedType[:len(event.feedType)-5]
+        else:
+            feedStr = ' - ' + event.feedType
         # Build title
-        title = event.event + ': ' + matchupStr + dateStr
+        title = event.event + ': ' + matchupStr + dateStr + feedStr
 
         params = {
             'eventId': event.eventId,
@@ -315,13 +445,7 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM(session, league, team):
         }
         utils.addDir(title, utils.Mode.ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT, '', params, totalItems, showfanart)
 
-    # Set view as Big List
-    # Set view mode
-    if viewmode != None:
-        try:
-            xbmc.executebuiltin('Container.SetViewMode(' + viewmode + ')')
-        except Exception as e:
-            print 'Warning:  Unable to set view mode:  ' + str(e)
+    setViewMode()
 
 # Method to draw the highlights screen
 # which scrapes the external source and presents
@@ -331,8 +455,12 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
     print 'Team: ' + str(team)
     print 'Date: ' + str(date)
 
-    highlights = hockeystreams.dateOnDemandHighlights(session, date, team)
-    condensedGames = hockeystreams.dateOnDemandHighlights(session, date, team)
+    highlights = []
+    if showhighlight:
+        highlights = hockeystreams.dateOnDemandHighlights(session, date, team)
+    condensedGames = []
+    if showcondensed:
+        condensedGames = hockeystreams.dateOnDemandHighlights(session, date, team)
 
     totalItems = len(highlights) + len(condensedGames)
 
@@ -411,102 +539,6 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
                 utils.addLink(title + ' [Away]', condensedGame.awaySrc, '', totalItems, showfanart)
                 src.append(condensedGame.awaySrc)
 
-# Method to draw the highlights screen
-# which scrapes the external source and presents
-# a list of highlights for a given team and/or date
-def HIGHLIGHTS_BYTEAM_TEAMDATE(session, team, date):
-    print 'HIGHLIGHTS_BYTEAM_TEAMDATE(session, team, date)'
-    print 'Team: ' + str(team)
-    print 'Date: ' + str(date)
-
-    highlights = hockeystreams.dateOnDemandHighlights(session, date, team)
-
-    totalItems = len(highlights)
-
-    src = []
-    for highlight in highlights:
-        if team == None or (team == highlight.homeTeam or team == highlight.awayTeam):
-            # Create datetime for string formatting
-            parts = highlight.date.split('/')
-            day = int(parts[1])
-            month = int(parts[0])
-            year = int(parts[2])
-            dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
-            # Build matchup
-            homeTeam = highlight.homeTeam if not shortNames else ballstreams.shortTeamName(highlight.homeTeam, addonPath)
-            awayTeam = highlight.awayTeam if not shortNames else ballstreams.shortTeamName(highlight.awayTeam, addonPath)
-            matchupStr = awayTeam + ' @ ' + homeTeam
-            if awayTeam == '' or homeTeam == '': # Indicates special event
-                matchupStr = awayTeam + homeTeam
-            # Build title
-            title = '[Highlight] ' + highlight.event + ': ' + matchupStr + dateStr
-
-            if highlight.highQualitySrc != None and len(highlight.highQualitySrc) > 0 and src.count(highlight.medQualitySrc) == 0:
-                utils.addLink(title + ' [Hi]', highlight.highQualitySrc, '', totalItems, showfanart)
-                src.append(highlight.highQualitySrc)
-            if highlight.medQualitySrc != None and len(highlight.medQualitySrc) > 0 and src.count(highlight.medQualitySrc) == 0:
-                utils.addLink(title + ' [Med]', highlight.medQualitySrc, '', totalItems, showfanart)
-                src.append(highlight.medQualitySrc)
-            if highlight.lowQualitySrc != None and len(highlight.lowQualitySrc) > 0 and src.count(highlight.lowQualitySrc) == 0:
-                utils.addLink(title + ' [Lo]', highlight.lowQualitySrc, '', totalItems, showfanart)
-                src.append(highlight.lowQualitySrc)
-            if highlight.homeSrc != None and len(highlight.homeSrc) > 0 and src.count(highlight.homeSrc) == 0:
-                utils.addLink(title + ' [Home]', highlight.homeSrc, '', totalItems, showfanart)
-                src.append(highlight.homeSrc)
-            if highlight.awaySrc != None and len(highlight.awaySrc) > 0 and src.count(highlight.awaySrc) == 0:
-                utils.addLink(title + ' [Away]', highlight.awaySrc, '', totalItems, showfanart)
-                src.append(highlight.awaySrc)
-
-# Method to draw the highlights screen
-# which scrapes the external source and presents
-# a list of highlights for a given team and/or date
-def CONDENSEDGAMES_BYTEAM_TEAMDATE(session, team, date):
-    print 'CONDENSEDGAMES_BYTEAM_TEAMDATE(session, team, date)'
-    print 'Team: ' + str(team)
-    print 'Date: ' + str(date)
-
-    condensedGames = hockeystreams.dateOnDemandHighlights(session, date, team)
-
-    totalItems = len(condensedGames)
-
-    src = []
-    for condensedGame in condensedGames:
-        # Check global league filter
-        if enableleaguefilter and leagueFilter.count(condensedGame.event) == 0:
-            continue
-
-        if team == None or (team == condensedGame.homeTeam or team == condensedGame.awayTeam):
-            # Create datetime for string formatting
-            parts = condensedGame.date.split('/')
-            day = int(parts[1])
-            month = int(parts[0])
-            year = int(parts[2])
-            dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
-            # Build matchup
-            homeTeam = condensedGame.homeTeam if not shortNames else hockeystreams.shortTeamName(condensedGame.homeTeam, addonPath)
-            awayTeam = condensedGame.awayTeam if not shortNames else hockeystreams.shortTeamName(condensedGame.awayTeam, addonPath)
-            matchupStr = awayTeam + ' @ ' + homeTeam
-            if awayTeam == '' or homeTeam == '': # Indicates special event
-                matchupStr = awayTeam + homeTeam
-            # Build title
-            title = '[Condensed] ' + condensedGame.event + ': ' + matchupStr + dateStr
-
-            if condensedGame.highQualitySrc != None and len(condensedGame.highQualitySrc) > 0 and src.count(condensedGame.medQualitySrc) == 0:
-                utils.addLink(title + ' [Hi]', condensedGame.highQualitySrc, '', totalItems, showfanart)
-                src.append(condensedGame.highQualitySrc)
-            if condensedGame.medQualitySrc != None and len(condensedGame.medQualitySrc) > 0 and src.count(condensedGame.medQualitySrc) == 0:
-                utils.addLink(title + ' [Med]', condensedGame.medQualitySrc, '', totalItems, showfanart)
-                src.append(condensedGame.medQualitySrc)
-            if condensedGame.lowQualitySrc != None and len(condensedGame.lowQualitySrc) > 0 and src.count(condensedGame.lowQualitySrc) == 0:
-                utils.addLink(title + ' [Lo]', condensedGame.lowQualitySrc, '', totalItems, showfanart)
-                src.append(condensedGame.lowQualitySrc)
-            if condensedGame.homeSrc != None and len(condensedGame.homeSrc) > 0 and src.count(condensedGame.homeSrc) == 0:
-                utils.addLink(title + ' [Home]', condensedGame.homeSrc, '', totalItems, showfanart)
-                src.append(condensedGame.homeSrc)
-            if condensedGame.awaySrc != None and len(condensedGame.awaySrc) > 0 and src.count(condensedGame.awaySrc) == 0:
-                utils.addLink(title + ' [Away]', condensedGame.awaySrc, '', totalItems, showfanart)
-                src.append(condensedGame.awaySrc)
-
 # Method to draw the archive streams by event screen
 # which scrapes the external source and presents
 # a list of streams for a given stream id
@@ -534,43 +566,48 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT(session, eventId, feedType, dateStr):
         matchupStr = matchupStr + '*'
     elif feedType == 'Away Feed':
         matchupStr = awayTeam + '* @ ' + homeTeam
+    # Build feedStr
+    feedStr = ''
+    if feedType == None or feedType == '' or feedType == 'Home Feed' or feedType == 'Away Feed':
+        feedStr = ''
+    elif feedType.endswith(' Feed'):
+        feedStr = ' - ' + feedType[:len(feedType)-5]
+    else:
+        feedStr = ' - ' + feedType
     # Build title
     title = onDemandStream.event + ': ' + matchupStr + str(dateStr)
 
     if flash and onDemandStream.streamSet['flash'] != None:
-        suffix = ' [Flash]'
-        utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
+        if 'HD.' in onDemandStream.streamSet['flash'] and resolution != 'SD Only':
+            suffix = ' [Flash HD]' + feedStr
+            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
+        elif 'SD.' in onDemandStream.streamSet['flash'] and resolution != 'HD Only':
+            suffix = ' [Flash SD]' + feedStr
+            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
+        else:
+            suffix = ' [Flash]' + feedStr
+            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
     if istream and resolution != 'SD Only' and onDemandStream.streamSet['istream.hd'] != None:
-        suffix = ' [iStream HD]'
+        suffix = ' [iStream HD]' + feedStr
         utils.addLink(title + suffix, onDemandStream.streamSet['istream.hd'], '', totalItems, showfanart)
     if istream and resolution != 'HD Only' and onDemandStream.streamSet['istream.sd'] != None:
-        suffix = ' [iStream SD]'
+        suffix = ' [iStream SD]' + feedStr
         utils.addLink(title + suffix, onDemandStream.streamSet['istream.sd'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
-    if istream and resolution == 'All' and onDemandStream.streamSet['istream'] != None:
-        suffix = ' [iStream]'
+    if istream and resolution == 'All' and onDemandStream.streamSet['istream'] != None and onDemandStream.streamSet['istream'] != onDemandStream.streamSet['istream.hd']:
+        suffix = ' [iStream]' + feedStr
         utils.addLink(title + suffix, onDemandStream.streamSet['istream'], '', totalItems, showfanart)
     if wmv and onDemandStream.streamSet['wmv'] != None:
-        suffix = ' [WMV]'
+        suffix = ' [WMV]' + feedStr
         utils.addLink(title + suffix, onDemandStream.streamSet['wmv'], '', totalItems, showfanart)
 
     try:
         hTeam = onDemandStream.homeTeam
         dStr = datetime.datetime.strptime(dateStr, ' - %d %b \'%y')
-        if showhighlight and showcondensed:
-            HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, hTeam, dStr)
-        elif showhighlight:
-            HIGHLIGHTS_BYTEAM_TEAMDATE(session, hTeam, dStr)
-        elif showcondensed:
-            CONDENSEDGAMES_BYTEAM_TEAMDATE(session, hTeam, dStr)
+        HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, hTeam, dStr)
     except Exception as e:
         print 'Error initializing highlights/condensed: ' + str(e)
 
-    # Set view mode
-    if viewmode != None:
-        try:
-            xbmc.executebuiltin('Container.SetViewMode(' + viewmode + ')')
-        except Exception as e:
-            print 'Warning:  Unable to set view mode:  ' + str(e)
+    setViewMode()
 
 # Method to draw the live screen
 # which scrapes the external source and presents
@@ -581,11 +618,34 @@ def LIVE(session):
     # Find live events
     events = hockeystreams.liveEvents(session)
 
-    totalItems = len(events) + 1
+    totalItems = len(events) + 2
+
+    if totalItems > 13:
+        # Add refresh button
+        refreshParams = {
+            'refresh': 'True'
+        }
+        utils.addDir(addon.getLocalizedString(100015), mode, '', refreshParams, totalItems, showfanart)
+
+    buildLiveEvents(session, events, totalItems, True)
+    buildLiveEvents(session, events, totalItems, False)
+
+    # Add refresh button
+    refreshParams = {
+        'refresh': 'True'
+    }
+    utils.addDir(addon.getLocalizedString(100015), mode, '', refreshParams, totalItems, showfanart)
+
+    setViewMode()
+
+# Method to build live events
+# liveOnly determines ordering by event status
+def buildLiveEvents(session, events, totalItems, liveOnly):
 
     for event in events:
-        # Check global league filter
-        if enableleaguefilter and leagueFilter.count(event.event) == 0:
+        if liveOnly and event.isFinal:
+            continue
+        elif not liveOnly and not event.isFinal:
             continue
 
         # Build prefix
@@ -604,6 +664,14 @@ def LIVE(session):
             matchupStr = matchupStr + '*'
         elif event.feedType == 'Away Feed':
             matchupStr = awayTeam + '* @ ' + homeTeam
+        # Build feedStr
+        feedStr = ''
+        if event.feedType == None or event.feedType == '' or event.feedType == 'Home Feed' or event.feedType == 'Away Feed':
+            feedStr = ''
+        elif event.feedType.endswith(' Feed'):
+            feedStr = ' - ' + event.feedType[:len(event.feedType)-5]
+        else:
+            feedStr = ' - ' + event.feedType
         # Build period
         periodStr = ''
         if event.period == 'HALF - ':
@@ -619,18 +687,22 @@ def LIVE(session):
         if periodStr == '':
             startTimeStr = ' - ' + event.startTime
         # Build title
-        title = prefix + event.event + ': ' + matchupStr + scoreStr + periodStr + startTimeStr
+        title = prefix + event.event + ': ' + matchupStr + scoreStr + periodStr + startTimeStr + feedStr
         if event.homeTeam == session.favteam or event.awayTeam == session.favteam:
-            title = prefix + '[COLOR red][B]' + event.event + ': ' + matchupStr + scoreStr + periodStr + startTimeStr + '[/B][/COLOR]'
+            title = prefix + '[COLOR red][B]' + event.event + ': ' + matchupStr + scoreStr + periodStr + startTimeStr + feedStr + '[/B][/COLOR]'
 
         if event.isFinal:
             now = hockeystreams.adjustedDateTime()
+            team = event.homeTeam if event.homeTeam != None and event.homeTeam != '' else event.awayTeam
             params = {
                 'year': str(now.year),
                 'month': str(now.month),
-                'day': str(now.day)
+                'day': str(now.day),
+                'team': str(team),
+                'feedType': str(event.feedType)
             }
-            utils.addDir(title, utils.Mode.ONDEMAND_BYDATE_YEARMONTH_DAY, '', params, totalItems, showfanart)
+            print str(params)
+            utils.addDir(title, utils.Mode.LIVE_FINALEVENT, '', params, totalItems, showfanart)
         elif event.isFuture:
             refreshParams = {
                 'refresh': 'True'
@@ -642,19 +714,6 @@ def LIVE(session):
             }
             utils.addDir(title, utils.Mode.LIVE_EVENT, '', params, totalItems, showfanart)
 
-    # Add refresh button
-    refreshParams = {
-        'refresh': 'True'
-    }
-    utils.addDir(addon.getLocalizedString(100015), mode, '', refreshParams, totalItems, showfanart)
-
-    # Set view mode
-    if viewmode != None:
-        try:
-            xbmc.executebuiltin('Container.SetViewMode(' + viewmode + ')')
-        except Exception as e:
-            print 'Warning:  Unable to set view mode:  ' + str(e)
-
 # Method to draw the live streams screen
 # which scrapes the external source and presents
 # a list of current day event streams for an event id
@@ -665,7 +724,7 @@ def LIVE_EVENT(session, eventId):
     # Build streams
     liveStream = hockeystreams.liveEventStreams(session, eventId, location)
 
-    totalItems = 11 # max possible
+    totalItems = 15 # max possible
 
     if liveStream == None or liveStream.streamSet == None:
         return None
@@ -682,6 +741,14 @@ def LIVE_EVENT(session, eventId):
         matchupStr = matchupStr + '*'
     elif liveStream.feedType == 'Away Feed':
         matchupStr = awayTeam + '* @ ' + homeTeam
+    # Build feedStr
+    feedStr = ''
+    if liveStream.feedType == None or liveStream.feedType == '' or liveStream.feedType == 'Home Feed' or liveStream.feedType == 'Away Feed':
+        feedStr = ''
+    elif liveStream.feedType.endswith(' Feed'):
+        feedStr = ' - ' + liveStream.feedType[:len(liveStream.feedType)-5]
+    else:
+        feedStr = ' - ' + liveStream.feedType
     # Build period
     periodStr = ''
     if liveStream.period == 'HALF - ':
@@ -707,15 +774,22 @@ def LIVE_EVENT(session, eventId):
         suffix = ' [TrueLive SD]'
         utils.addLink(title + suffix, liveStream.streamSet['truelive.sd'], '', totalItems, showfanart)
     if flash and liveStream.streamSet['flash'] != None:
-        suffix = ' [Flash]'
-        utils.addLink(title + suffix, liveStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
+        if 'HD.' in liveStream.streamSet['flash'] and resolution != 'SD Only':
+            suffix = ' [Flash HD]'
+            utils.addLink(title + suffix, liveStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
+        elif 'SD.' in liveStream.streamSet['flash'] and resolution != 'HD Only':
+            suffix = ' [Flash SD]'
+            utils.addLink(title + suffix, liveStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
+        else:
+            suffix = ' [Flash]'
+            utils.addLink(title + suffix, liveStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
     if istream and resolution != 'SD Only' and liveStream.streamSet['istream.hd'] != None:
         suffix = ' [iStream HD]'
         utils.addLink(title + suffix, liveStream.streamSet['istream.hd'], '', totalItems, showfanart)
     if istream and resolution != 'HD Only' and liveStream.streamSet['istream.sd'] != None:
         suffix = ' [iStream SD]'
         utils.addLink(title + suffix, liveStream.streamSet['istream.sd'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
-    if istream and resolution == 'All' and liveStream.streamSet['istream'] != None:
+    if istream and resolution == 'All' and liveStream.streamSet['istream'] != None and liveStream.streamSet['istream'] != liveStream.streamSet['istream.hd']:
         suffix = ' [iStream]'
         utils.addLink(title + suffix, liveStream.streamSet['istream'], '', totalItems, showfanart)
     if dvr and resolution != 'SD Only' and liveStream.streamSet['nondvrhd'] != None:
@@ -738,14 +812,41 @@ def LIVE_EVENT(session, eventId):
     }
     utils.addDir(addon.getLocalizedString(100015), mode, '', refreshParams, totalItems, showfanart)
 
-    # Set view mode
-    if viewmode != None:
-        try:
-            xbmc.executebuiltin('Container.SetViewMode(' + viewmode + ')')
-        except Exception as e:
-            print 'Warning:  Unable to set view mode:  ' + str(e)
+    setViewMode()
 
-# Method to populate recent matchups and higlights
+# Method to draw the live streams screen
+# which scrapes the external source and presents
+# a list of current day event streams for an event id
+def LIVE_FINALEVENT(session, year, month, day, team, feedType):
+    print 'LIVE_FINALEVENT(session, year, month, day, feedType)'
+    print 'Year: ' + str(year)
+    print 'Month: ' + str(month)
+    print 'Day: ' + str(day)
+    print 'Team: ' + team
+    print 'FeedType: ' + str(feedType)
+
+    # Retrieve the events
+    date = datetime.date(year, month, day)
+    try:
+        events = hockeystreams.dateOnDemandEvents(session, date)
+    except Exception as e:
+        print 'Warning:  No events found for date: ' + str(date) + ' Msg: ' + str(e)
+        return
+
+    # Search for matching event to display matching on-demand streams
+    for event in events:
+        print str(event.feedType)
+        if (event.homeTeam == team or event.awayTeam == team) and (not(feedType == 'Home Feed' or feedType == 'Away Feed') or feedType == event.feedType):
+            # Create datetime for string formatting
+            parts = event.date.split('/')
+            day = int(parts[1])
+            month = int(parts[0])
+            year = int(parts[2])
+            dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
+
+            ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, event.eventId, event.feedType, dateStr)
+
+# Method to populate recent events
 # which scrapes the external source and presents
 # a list of recent days events
 def ONDEMAND_RECENT(session):
@@ -768,6 +869,14 @@ def ONDEMAND_RECENT(session):
         # Increment loop to avoid TO INFINITY AND BEYOND!!
         i += 1
 
+# Set view mode according to addon settings
+def setViewMode():
+    if viewmode != None:
+        try:
+            xbmc.executebuiltin('Container.SetViewMode(' + viewmode + ')')
+        except Exception as e:
+            print 'Warning:  Unable to set view mode:  ' + str(e)
+
 # Load general settings
 username = addon.getSetting('username')
 password = addon.getSetting('password')
@@ -787,6 +896,8 @@ if viewmode != None and viewmode == 'Big List':
     viewmode = '51'
 elif viewmode != None and viewmode == 'List':
     viewmode = '50'
+elif viewmode != None and viewmode == 'Thumbnail':
+    viewmode = '500'
 else: # Default
     viewmode = None
 
@@ -804,9 +915,9 @@ if enableleaguefilter:
     showohl = addon.getSetting('showohl')
     if showohl != None and showohl.lower() == 'true':
         leagueFilter.append('OHL')
-    showppv = addon.getSetting('showppv')
-    if showppv != None and showppv.lower() == 'true':
-        leagueFilter.append('PPV')
+    showpvp = addon.getSetting('showpvp')
+    if showpvp != None and showpvp.lower() == 'true':
+        leagueFilter.append('PVP')
     showqmjhl = addon.getSetting('showqmjhl')
     if showqmjhl != None and showqmjhl.lower() == 'true':
         leagueFilter.append('QMJHL')
@@ -820,8 +931,7 @@ istream = addon.getSetting('istream')
 istream = istream != None and istream.lower() == 'true'
 flash = addon.getSetting('flash')
 flash = flash != None and flash.lower() == 'true'
-wmv = addon.getSetting('wmv')
-wmv = wmv != None and wmv.lower() == 'true'
+wmv = 'True'
 truelive = addon.getSetting('truelive')
 truelive = truelive != None and truelive.lower() == 'true'
 dvr = addon.getSetting('dvr')
@@ -845,6 +955,7 @@ mode = utils.parseParamInt(params, 'mode')
 year = utils.parseParamInt(params, 'year')
 month = utils.parseParamInt(params, 'month')
 day = utils.parseParamInt(params, 'day')
+numberOfDays = utils.parseParamInt(params, 'numberOfDays')
 league = utils.parseParamString(params, 'league')
 team = utils.parseParamString(params, 'team')
 eventId = utils.parseParamString(params, 'eventId')
@@ -913,6 +1024,12 @@ elif mode == utils.Mode.ONDEMAND_BYDATE_YEARMONTH_DAY:
     ONDEMAND_BYDATE_YEARMONTH_DAY(session, year, month, day)
 elif mode == utils.Mode.ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT:
     ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, eventId, feedType, dateStr)
+elif mode == utils.Mode.ONDEMAND_BYDATE_CUSTOM:
+    ONDEMAND_BYDATE_CUSTOM(session)
+elif mode == utils.Mode.ONDEMAND_BYDATE_CUSTOM_YEARMONTH:
+    ONDEMAND_BYDATE_CUSTOM_YEARMONTH(session, year, month)
+elif mode == utils.Mode.ONDEMAND_BYDATE_CUSTOM_YEARMONTH_RANGE:
+    ONDEMAND_BYDATE_CUSTOM_YEARMONTH_RANGE(session, year, month, day, numberOfDays)
 elif mode == utils.Mode.ONDEMAND_BYTEAM:
     ONDEMAND_BYTEAM(session)
 elif mode == utils.Mode.ONDEMAND_BYTEAM_LEAGUE:
@@ -929,6 +1046,8 @@ elif mode == utils.Mode.LIVE_EVENT:
     LIVE_EVENT(session, eventId)
     updateListing = refresh
     cacheToDisc = False
+elif mode == utils.Mode.LIVE_FINALEVENT:
+    LIVE_FINALEVENT(session, year, month, day, team, feedType)
 
 # Signal end of directory
 xbmcplugin.endOfDirectory(int(sys.argv[1]), cacheToDisc = cacheToDisc, updateListing = updateListing)

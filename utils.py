@@ -3,7 +3,7 @@ import urllib
 import sys
 
 # xbmc-hockey-streams
-# author: craig mcnicholas, andrew wise
+# author: craig mcnicholas, swedemon
 # contact: craig@designdotworks.co.uk, zergcollision@gmail.com
 
 # Represents an enumeration for application modes
@@ -14,12 +14,16 @@ class Mode:
     ONDEMAND_BYDATE_YEARMONTH = 4
     ONDEMAND_BYDATE_YEARMONTH_DAY = 5
     ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT = 6
-    ONDEMAND_BYTEAM = 7
-    ONDEMAND_BYTEAM_LEAGUE = 8
-    ONDEMAND_BYTEAM_LEAGUE_TEAM = 9
-    ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT = 10
-    LIVE = 11
-    LIVE_EVENT = 12
+    ONDEMAND_BYDATE_CUSTOM = 7
+    ONDEMAND_BYDATE_CUSTOM_YEARMONTH = 8
+    ONDEMAND_BYDATE_CUSTOM_YEARMONTH_RANGE = 9
+    ONDEMAND_BYTEAM = 10
+    ONDEMAND_BYTEAM_LEAGUE = 11
+    ONDEMAND_BYTEAM_LEAGUE_TEAM = 12
+    ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT = 13
+    LIVE = 14
+    LIVE_EVENT = 15
+    LIVE_FINALEVENT = 16
 
 # Method to get the parameters for the current view
 # @return an array of parameters

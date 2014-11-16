@@ -1,7 +1,7 @@
 import urllib, urllib2, datetime, time, json, os
 
 # xbmc-hockey-streams
-# author: craig mcnicholas, andrew wise (since v2.8.2)
+# author: craig mcnicholas, swedemon
 # contact: craig@designdotworks.co.uk, zergcollision@gmail.com
 
 # Represents a session class which contains a users login
@@ -51,16 +51,20 @@ class LiveEvent():
         elif self.period == '':
             self.isFuture = True
             self.isFinal = False
-        elif self.period != self.startTime:
+        elif self.period != self.startTime and not(self.period.find('PM')>0 or self.period.find('AM')>0): #PM/AM indicates invalid period and future game
             self.isFuture = False
             self.isFinal = True
-        else:  #self.period == self.startTime and score is 0-0 (we're stuck)
-            # this is not full-proof but is a best guess at the moment
-            nowStr = datetime.datetime.now().strftime('%I:%m %p').rjust(8, '0') # if system time-zone differs from account time-zone breaks this scenario
-            startStr = startTime[:8].strip().rjust(8, '0')
-            isGameInFuture = nowStr < startStr #01:00 AM < 07:00 PM - this breaks this scenario
-            self.isFuture = isGameInFuture
-            self.isFinal = not isGameInFuture
+        else:  #differing period and score is 0-0 (we're stuck)
+            # this is not full-proof but is a best guess at the moment since timezones can be tricky
+            try:
+                nowStr = datetime.datetime.now().strftime('%I:%m %p').rjust(8, '0') # if system time-zone differs from account time-zone breaks this scenario
+                startStr = startTime[:8].strip().rjust(8, '0')
+                isGameInFuture = nowStr < startStr #01:00 AM < 07:00 PM - this breaks this scenario
+                self.isFuture = isGameInFuture
+                self.isFinal = not isGameInFuture
+            except Exception as e:
+                self.isFuture = True
+                self.isFinal = False
 
     # Overrides this classes string value
     def __str__(self):
@@ -653,6 +657,7 @@ def onDemandEventStreams(session, eventId, location=None):
 
     # Parse the live stream response
     js = json.loads(page)
+    print str(js)
 
     # Check the api request was successful
     __checkStatus(js)
@@ -766,6 +771,7 @@ def liveEvents(session):
 
     # Check the api request was successful
     __checkStatus(js)
+    print str(js)
 
     # Get the schedule array
     schedule = js['schedule']

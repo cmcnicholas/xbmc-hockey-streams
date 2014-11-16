@@ -1,3 +1,24 @@
+[b]2.9.8[/b]
+- Added: Added refresh option at the top of live events when the list is large
+- Added: All teams option added under by team category
+- Added: Choosing final event now leads directly to on-demand streams
+- Added: Custom date search to on-demand section
+- Added: Events will now display source of non-home/away feeds when available
+- Added: OnDemand team filter includes similar events, i.e. NHL includes NHL preseason
+- Added: PPV added as optional event filter
+- Added: Progressive stream support added - expert setting in beta
+- Added: Refresh added at the top when several live events displayed
+- Changed: Coming soon events also display above final events
+- Changed: Eliminate redundant iStream when duplicates HD or SD stream
+- Changed: Flash events now specify HD or SD when stream URL indicates
+- Changed: Live events now show at the top
+- Changed: View Mode includes thumbnail and extends to all directories
+- Fixed: Eliminated defunct progressive streams
+- Fixed: Fixed bug that prevented condensed game building
+- Fixed: Home and away indicators fixed within On-Demand event screens
+- Fixed: Removed league filter within on-demand byteam event filter where it didn't make sense
+- Fixed: Standardized plugin directory name
+
 [b]2.9.5[/b]
 - Fixed: Corrected elusive highlights function call
 - Fixed: Fix to live title text for favorite team

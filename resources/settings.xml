@@ -6,7 +6,7 @@
         <setting type="sep" />
         <setting id="shortnames" type="bool" label="100020" default="true" />
         <setting id="showscores" type="bool" label="100032" default="true" />
-        <setting id="viewmode" type="labelenum" label="100037" values="Default|Big List|List" default="Default" />
+        <setting id="viewmode" type="labelenum" label="100037" values="Default|Big List|List|Thumbnail" default="Default" />
         <setting id="showfanart" type="bool" label="100034" default="false" />
     </category>
 	<category label="OnDemand Settings">
@@ -20,7 +20,6 @@
         <setting id="flash" type="bool" label="100017" default="true" />
         <setting id="truelive" type="bool" label="100026" default="true" />
         <setting id="istream" type="bool" label="100016" default="true" />
-        <setting id="wmv" type="bool" label="100027" default="true" />
         <setting id="dvr" type="bool" label="100035" default="false" />
     </category>
     <category label="League Filter">
@@ -28,7 +27,7 @@
         <setting id="showahl" type="bool" label="   AHL" enable="eq(-1,true)" default="false"/>
         <setting id="shownhl" type="bool" label="   NHL" enable="eq(-2,true)" default="false"/>
         <setting id="showohl" type="bool" label="   OHL" enable="eq(-3,true)" default="false"/>
-        <setting id="showppv" type="bool" label="   PPV" enable="eq(-4,true)" default="false"/>
+        <setting id="showpvp" type="bool" label="   PVP" enable="eq(-4,true)" default="false"/>
         <setting id="showqmjhl" type="bool" label="   QMJHL" enable="eq(-5,true)" default="false"/>
         <setting id="showwhl" type="bool" label="   WHL" enable="eq(-6,true)" default="false"/>
     </category>
