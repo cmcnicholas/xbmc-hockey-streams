@@ -643,6 +643,10 @@ def LIVE(session):
 def buildLiveEvents(session, events, totalItems, liveOnly):
 
     for event in events:
+        # Check global league filter
+        if enableleaguefilter and leagueFilter.count(event.event) == 0:
+            continue
+
         if liveOnly and event.isFinal:
             continue
         elif not liveOnly and not event.isFinal:
