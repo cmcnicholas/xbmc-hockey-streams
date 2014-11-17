@@ -27,7 +27,7 @@
         <setting id="showahl" type="bool" label="   AHL" enable="eq(-1,true)" default="false"/>
         <setting id="shownhl" type="bool" label="   NHL" enable="eq(-2,true)" default="false"/>
         <setting id="showohl" type="bool" label="   OHL" enable="eq(-3,true)" default="false"/>
-        <setting id="showpvp" type="bool" label="   PVP" enable="eq(-4,true)" default="false"/>
+        <setting id="showppv" type="bool" label="   PPV" enable="eq(-4,true)" default="false"/>
         <setting id="showqmjhl" type="bool" label="   QMJHL" enable="eq(-5,true)" default="false"/>
         <setting id="showwhl" type="bool" label="   WHL" enable="eq(-6,true)" default="false"/>
     </category>
