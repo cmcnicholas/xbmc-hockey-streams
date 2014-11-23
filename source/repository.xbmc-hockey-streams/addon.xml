@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.xbmc-hockey-streams" name="XBMC Hockey Streams Repo" version="0.0.1" provider-name="fungus1487, Swedemon">
+    <extension point="xbmc.addon.repository" name="XBMC Hockey Streams Repo">
+        <info compressed="false">https://raw.githubusercontent.com/fungus1487/xbmc-hockey-streams/master/repo/addons.xml</info>
+        <checksum>https://raw.githubusercontent.com/fungus1487/xbmc-hockey-streams/master/repo/addons.xml.md5</checksum>
+        <datadir zip="true">https://raw.githubusercontent.com/fungus1487/xbmc-hockey-streams/master/repo</datadir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary>Install Hockey Streams XBMC Addons</summary>
+        <description>Download and install Hockey Streams addons by fungus1487, Swedemon</description>
+        <platform>all</platform>
+    </extension>
+</addon>
