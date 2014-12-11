@@ -33,7 +33,7 @@ class Session():
 class LiveEvent():
 
     # Creates a new event instance
-    def __init__(self, eventId, event, homeTeam, homeScore, awayTeam, awayScore, startTime, period, isPlaying, feedType):
+    def __init__(self, eventId, event, homeTeam, homeScore, awayTeam, awayScore, startTime, period, isPlaying, feedType, trueLiveHD = None, trueLiveSD = None, hdUrl = None, sdUrl = None, srcUrl = None):
         self.eventId = eventId
         self.event = event
         self.homeTeam = homeTeam
@@ -44,6 +44,11 @@ class LiveEvent():
         self.period = period if period != None else ''
         self.isPlaying = isPlaying
         self.feedType = feedType
+        self.trueLiveHD = trueLiveHD
+        self.trueLiveSD = trueLiveSD
+        self.srcUrl = srcUrl
+        self.sdUrl = sdUrl
+        self.hdUrl = hdUrl
         # Special logic needed to define isFuture and isFinal parameters
         if self.isPlaying:
             self.isFuture = False
@@ -54,11 +59,11 @@ class LiveEvent():
         elif self.period == '':
             self.isFuture = True
             self.isFinal = False
-        elif self.period != self.startTime and not(self.period.find('PM')>0 or self.period.find('AM')>0): #PM/AM indicates invalid period and future game
+        elif self.period != self.startTime:
             self.isFuture = False
             self.isFinal = True
-        else:  #differing period and score is 0-0 (we're stuck)
-            # this is not full-proof but is a best guess at the moment since timezones can be tricky
+        else:  #self.period == self.startTime and score is 0-0 (we're stuck)
+            # this is not full-proof but is a best guess at the moment
             try:
                 nowStr = datetime.datetime.now().strftime('%I:%m %p').rjust(8, '0') # if system time-zone differs from account time-zone breaks this scenario
                 startStr = startTime[:8].strip().rjust(8, '0')
@@ -870,6 +875,11 @@ def liveEvents(session):
         period = item['period']
         isPlaying = item['isPlaying']
         feedType = item['feedType']
+        trueLiveHD = item['TrueLiveHD']
+        trueLiveSD = item['TrueLiveSD']
+        hdUrl = item['hdUrl']
+        sdUrl = item['sdUrl']
+        srcUrl = item['srcUrl']
 
         # Check schedule item id
         if eventId == None:
@@ -899,7 +909,7 @@ def liveEvents(session):
         # Convert the value to a boolean
         isPlaying = str(isPlaying) == '1'
 
-        events.append(LiveEvent(eventId, event, homeTeam, homeScore, awayTeam, awayScore, startTime, period, isPlaying, feedType))
+        events.append(LiveEvent(eventId, event, homeTeam, homeScore, awayTeam, awayScore, startTime, period, isPlaying, feedType, trueLiveHD, trueLiveSD, hdUrl, sdUrl, srcUrl))
 
     return events
 

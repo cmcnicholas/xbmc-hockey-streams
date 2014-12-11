@@ -27,6 +27,7 @@ class Mode:
     LIVE = 14
     LIVE_EVENT = 15
     LIVE_FINALEVENT = 16
+    LIVEEVENT = 17
 
 # Method to get the parameters for the current view
 # @return an array of parameters
