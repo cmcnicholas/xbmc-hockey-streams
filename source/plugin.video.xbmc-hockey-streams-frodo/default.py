@@ -18,7 +18,16 @@ addonPath = addon.getAddonInfo('path')
 def HOME():
     print 'HOME()'
     utils.addDir(addon.getLocalizedString(100005), utils.Mode.ONDEMAND, '', None, 2, showfanart)
-    utils.addDir(addon.getLocalizedString(100006), utils.Mode.LIVE, '', None, 2, showfanart)
+    if showaltlive:
+        # utils.addDir(addon.getLocalizedString(100006), utils.Mode.LIVEEVENT, '', None, 2, showfanart)
+        LIVEEVENT(session)
+        updateListing = refresh
+        cacheToDisc = False
+    else:
+        # utils.addDir(addon.getLocalizedString(100006), utils.Mode.LIVE, '', None, 2, showfanart)
+        LIVE(session)
+        updateListing = refresh
+        cacheToDisc = False
 
     setViewMode()
 
@@ -1071,6 +1080,8 @@ shortNames = addon.getSetting('shortnames')
 shortNames = shortNames != None and shortNames.lower() == 'true'
 showscores = addon.getSetting('showscores')
 showscores = showscores != None and showscores.lower() == 'true'
+showaltlive = addon.getSetting('showaltlive')
+showaltlive = showaltlive != None and showaltlive.lower() == 'true'
 showfanart = addon.getSetting('showfanart')
 showfanart = showfanart != None and showfanart.lower() == 'true'
 showhighlight = addon.getSetting('showhighlight')
