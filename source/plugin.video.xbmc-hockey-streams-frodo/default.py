@@ -960,7 +960,11 @@ def buildLiveStreams(session, events, totalItems, filter):
         # skip condition 3
         elif filter == 3 and (not event.isFinal or event.homeTeam == session.favteam or event.awayTeam == session.favteam):
             continue
-
+        
+        # Check global league filter
+        if enableleaguefilter and leagueFilter.count(event.event) == 0:
+            continue
+        
         # Build prefix
         prefix = '[COLOR blue][B][LIVE][/B][/COLOR] '
         if event.isFuture:
@@ -1213,6 +1217,8 @@ else:
 # Invoke mode function
 if mode == None or mode == utils.Mode.HOME:
     HOME()
+    updateListing = refresh
+    cacheToDisc = False
 elif mode == utils.Mode.ONDEMAND:
     ONDEMAND()
 elif mode == utils.Mode.ONDEMAND_BYDATE:
