@@ -1,3 +1,6 @@
+[b]3.0.7[/b]
+- Fixed: Fix to API changes related to on-demand streams
+
 [b]3.0.6[/b]
 - Changed: Moved Live Streams to the front page (one less click!)
 
