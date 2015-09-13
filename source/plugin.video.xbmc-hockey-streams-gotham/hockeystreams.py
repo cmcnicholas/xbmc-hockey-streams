@@ -709,10 +709,10 @@ def onDemandEventStreams(session, eventId, location=None):
     event = js['event']
     homeTeam = js['homeTeam']
     awayTeam = js['awayTeam']
-    flashSRC = js['FlashSRC']
-    windowsMediaSRC = js['WindowsMediaSRC']
-    iStreamSRC = js['iStreamSRC']
-    hlsSRC = js['hlsSRC']
+    flashSRC = js.get('FlashSRC')
+    windowsMediaSRC = js.get('WindowsMediaSRC')
+    iStreamSRC = js.get('iStreamSRC')
+    hlsSRC = js.get('hlsSRC')
 
     # Get the streams
     streams = js['streams'] if 'streams' in js else []
