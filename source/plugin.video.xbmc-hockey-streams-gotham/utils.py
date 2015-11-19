@@ -93,9 +93,10 @@ def tempDir():
 # @param image the image to display as the thumbnail
 # @param totalItems [optional] the total number of items to add to show progress
 # @return a flag indicating success
-def addLink(name, url, image, totalItems = None, showfanart = None):
+def addLink(name, url, image, totalItems = None, showfanart = None, icon = None):
     ok = True
-    item = xbmcgui.ListItem(name, iconImage = 'DefaultVideo.png', thumbnailImage = 'special://home/addons/' + addonId + '/Ice-Hockey-icon.png')
+    thumbnail = icon or ('special://home/addons/' + addonId + '/Ice-Hockey-icon.png')
+    item = xbmcgui.ListItem(name, iconImage = 'DefaultVideo.png', thumbnailImage = thumbnail)
     item.setInfo(type = 'Video', infoLabels = { 'Title': name })
     if showfanart:
         item.setProperty( "Fanart_Image", 'special://home/addons/' + addonId + '/fanart.jpg' )
@@ -112,10 +113,8 @@ def addLink(name, url, image, totalItems = None, showfanart = None):
 # @param params a dictionary of params to append
 # @param totalItems [optional] the total number of items to add to show progress
 # @return a flag indicating success
-#def addDir(name, mode, image, params, totalItems = None, showfanart = None, event = None):
 def addDir(name, mode, image, params, totalItems = None, showfanart = None, icon = None):
     thumbnail = icon or ('special://home/addons/' + addonId + '/Ice-Hockey-icon.png')
-    #print 'Thumbnail is: ' + thumbnail
     url = sys.argv[0] + "?mode=" + str(mode)
     if params != None:
         for k, v in params.iteritems():

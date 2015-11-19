@@ -1,4 +1,4 @@
-import urllib, urllib2, datetime, time, json, os, utils
+import urllib, urllib2, datetime, time, json, os, utils, atexit
 from PIL import Image, ImageDraw, ImageFont
 from sqlite3 import dbapi2 as sqlite
 
@@ -32,7 +32,6 @@ class Session():
         return repr('Username: ' + self.username + ', Membership: ' + self.membership + ', Token: ' + self.token)
 
 class IconSupport():
-    #def __init__(self, homeTeam, awayTeam, startTime = None, period = None, homeScore= None, awayScore = None, isFinal = False, isFuture = False):
     def __init__(self, homeTeam, awayTeam, startTime = None, period = None, homeScore= None, awayScore = None, date = None):
         self.homeTeam = homeTeam
         self.awayTeam = awayTeam
@@ -42,20 +41,8 @@ class IconSupport():
         self.awayScore = awayScore
         self.date = date
     
-#    def clearTextures(self,saveLocation):
-#        print 'Clearing Textures13 database entries.'
-#        dbPath = utils.texturesDb() 
-#        conn = sqlite.connect(dbPath)
-#        c = conn.cursor()
-#        removed = c.execute('DELETE FROM texture WHERE url=\''+saveLocation+'\'')
-#        print 'Removed [' + str(removed.rowcount) + '] entries from the texture table'
-
     def hasLogo(self,team,teams):
-        if (team in teams):
-          print teams[team]
-          return 'logo' in teams[team]
-        return False
-        #return team in teams and "logo" in teams[team]
+        return team in teams and 'logo' in teams[team]
 
     def getLogo(self,team,teams):
         return teams[team]['logo']
@@ -63,7 +50,7 @@ class IconSupport():
     def getAbb(self,team,teams):
         return teams[team]['abbreviation']
 
-    def icon(self,addonPath,teams,showscores = False):
+    def icon(self,addonPath,teams,showscores = False,extraText = None):
         if (self.hasLogo(self.awayTeam.lower(),teams) and self.hasLogo(self.homeTeam.lower(),teams)):
           print 'Generating icon ' + self.homeTeam + '/' + self.awayTeam
           timeFont = ImageFont.truetype(utils.boldFontPath(), 18)
@@ -72,26 +59,23 @@ class IconSupport():
           icon = Image.open(utils.emptyIconPath())
           draw = ImageDraw.Draw(icon)
           awayTeam = Image.open(os.path.join(addonPath,self.getLogo(self.awayTeam.lower(),teams)))    
-          icon.paste(awayTeam, (10,80), awayTeam)
-          draw.text((120,100), self.getAbb(self.awayTeam.lower(),teams), font = abbFont, fill=(0,0,0,255))
+          icon.paste(awayTeam, (10,60+1), awayTeam)
+          draw.text((120,60+40), self.getAbb(self.awayTeam.lower(),teams), font = abbFont, fill=(0,0,0,255))
           homeTeam = Image.open(os.path.join(addonPath,self.getLogo(self.homeTeam.lower(),teams)))
-          icon.paste(homeTeam, (10,160), homeTeam)
-          draw.text((120,180), self.getAbb(self.homeTeam.lower(),teams), font = abbFont, fill=(0,0,0,255))
+          icon.paste(homeTeam, (10,60+98+1), homeTeam)
+          draw.text((120,60+98+40), self.getAbb(self.homeTeam.lower(),teams), font = abbFont, fill=(0,0,0,255))
           if (hasattr(self, 'isFinal') and self.isFinal):
-            draw.text((10, 16), "Final", font=timeFont, fill=(0,0,0,255))
+            draw.text((10, 16), 'Final' + (' ' + extraText if (extraText is not None) else ''), font=timeFont, fill=(0,0,0,255))
           elif (self.period is not None):
             draw.text((10, 16), self.period, font=timeFont, fill=(0,0,0,255))
           elif (self.date is not None):
             draw.text((10, 16), self.date, font=timeFont, fill=(0,0,0,255))
 
           if (showscores and self.homeScore is not None and self.awayScore is not None):
-            draw.text((200, 80), self.awayScore, font=scoresFont, fill=(0,0,0,255))
-            draw.text((200, 155), self.homeScore, font=scoresFont, fill=(0,0,0,255))
-
+            draw.text((200, 60+25), self.awayScore, font=scoresFont, fill=(0,0,0,255))
+            draw.text((200, 60+98+25), self.homeScore, font=scoresFont, fill=(0,0,0,255))
           saveLocation = utils.tempDir() + self.awayTeam.replace(" ", "") + "_" + self.homeTeam.replace(" ","") + '.png'
-          print 'Saved icon to ' + saveLocation
-          #self.clearTextures(saveLocation)
-          icon.save(saveLocation, 'PNG', compress_level = 4)
+          icon.save(saveLocation, 'PNG', compress_level = 1)
           return saveLocation
         else:
           return None
@@ -103,7 +87,6 @@ class LiveEvent(IconSupport):
     # Creates a new event instance
     def __init__(self, eventId, event, homeTeam, homeScore, awayTeam, awayScore, startTime, period, isPlaying, feedType, trueLiveHD = None, trueLiveMD = None, trueLiveSD = None, hdUrl = None, mdUrl = None, sdUrl = None, srcUrl = None):
         IconSupport.__init__(self,homeTeam,awayTeam,startTime,period,homeScore,awayScore)
-        print "st:[{0}],period:[{1}],homesc:[{2}],awaysc:[{3}]".format(startTime,period,homeScore,awayScore)
         self.eventId = eventId
         self.event = event
         self.homeTeam = homeTeam
@@ -132,7 +115,6 @@ class LiveEvent(IconSupport):
             self.isFuture = True
             self.isFinal = False
         elif self.period != self.startTime:
-            print 'Yup {0} != {1}'.format(period,startTime)     
             self.isFuture = False
             self.isFinal = True
         else:  #self.period == self.startTime and score is 0-0 (we're stuck)
@@ -141,7 +123,6 @@ class LiveEvent(IconSupport):
                 nowStr = datetime.datetime.now().strftime('%I:%m %p').rjust(8, '0') # if system time-zone differs from account time-zone breaks this scenario
                 startStr = startTime[:8].strip().rjust(8, '0')
                 isGameInFuture = nowStr < startStr #01:00 AM < 07:00 PM - this breaks this scenario
-                print 'Weird logic: [' + nowStr + '] vs. [' + startStr + '] gives ' + isGameInFuture
                 self.isFuture = isGameInFuture
                 self.isFinal = not isGameInFuture
             except Exception as e:
@@ -175,7 +156,6 @@ class LiveStream(IconSupport):
     # Creates a new streams instance
     def __init__(self, eventId, event, homeTeam, homeScore, awayTeam, awayScore, startTime, period, feedType, streamSet = None):
         IconSupport.__init__(self,homeTeam,awayTeam,startTime,period,homeScore,awayScore)
-        print "st:[{0}],period:[{1}],homesc:[{2}],awaysc:[{3}]".format(startTime,period,homeScore,awayScore)
         self.eventId = eventId
         self.event = event
         self.homeTeam = homeTeam
