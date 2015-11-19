@@ -72,9 +72,15 @@ def parseParamString(params, key):
 def emptyIconPath():
     return xbmc.translatePath('special://home/addons/' + addonId + '/empty_icon.png')
 
-def fontPath():
-    return xbmc.translatePath('special://home/addons/' + addonId + '/arial.ttf')
-      
+def regularFontPath():
+    return xbmc.translatePath('special://home/addons/' + addonId + '/resources/data/fonts/Open_Sans/OpenSans-Regular.ttf')
+
+def boldFontPath():
+    return xbmc.translatePath('special://home/addons/' + addonId + '/resources/data/fonts/Open_Sans/OpenSans-Bold.ttf')
+
+def teamsJson():
+    return xbmc.translatePath('special://home/addons/' + addonId + '/resources/data/teams.json')
+
 def texturesDb():
     return xbmc.translatePath('special://home/userdata/Database/Textures13.db')
 
@@ -108,13 +114,8 @@ def addLink(name, url, image, totalItems = None, showfanart = None):
 # @return a flag indicating success
 #def addDir(name, mode, image, params, totalItems = None, showfanart = None, event = None):
 def addDir(name, mode, image, params, totalItems = None, showfanart = None, icon = None):
-    #if (event is not None and isinstance(event, IconSupport)):
-    #  print event
-    #  thumbnail = event.icon()
-    #  thumbnail.save("img1.png","PNG")
-    #  print 'Saved img1.png'
     thumbnail = icon or ('special://home/addons/' + addonId + '/Ice-Hockey-icon.png')
-    print 'Thumbnail is: ' + thumbnail
+    #print 'Thumbnail is: ' + thumbnail
     url = sys.argv[0] + "?mode=" + str(mode)
     if params != None:
         for k, v in params.iteritems():

@@ -1,6 +1,6 @@
 import xbmc, xbmcplugin, xbmcaddon, xbmcgui
 import hockeystreams, utils
-import os, datetime, threading, random, time
+import os, datetime, threading, random, time, json
 
 # xbmc-hockey-streams
 # author: craig mcnicholas, swedemon
@@ -13,6 +13,24 @@ dataPath = 'special://profile/addon_data/' + addonId
 if not os.path.exists: os.makedirs(dataPath)
 addon = xbmcaddon.Addon(id = addonId)
 addonPath = addon.getAddonInfo('path')
+teamsJsonPath = os.path.join(addonPath, 'resources', 'data', 'teams.json')
+f = open(teamsJsonPath, 'rb')
+teamsContent = f.read()
+f.close()
+teams = json.loads(teamsContent)
+
+# Method to get the short team name of a team
+# @param teamName the team name to get the shortened version for
+# @param root the root file path to append the resource file path to
+# @return a short team name or the original team name if not found
+def shortTeamName(teamName):
+    # Get lower case key name and check it exists
+    teamNameLower = teamName.lower()
+    if teamNameLower in teams and "shortName" in teams[teamNameLower]:
+        return teams[teamNameLower]["shortName"] # It does so get name
+    else:
+        return teamName # It doesn't return original
+
 
 # Method to draw the home screen
 def HOME():
@@ -157,8 +175,8 @@ def buildOnDemandEvents(session, events, totalItems, filter):
         dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
 
         # Build matchup
-        homeTeam = event.homeTeam if not shortNames else hockeystreams.shortTeamName(event.homeTeam, addonPath)
-        awayTeam = event.awayTeam if not shortNames else hockeystreams.shortTeamName(event.awayTeam, addonPath)
+        homeTeam = event.homeTeam if not shortNames else shortTeamName(event.homeTeam)
+        awayTeam = event.awayTeam if not shortNames else shortTeamName(event.awayTeam)
         matchupStr = awayTeam + ' @ ' + homeTeam
         if awayTeam == '' or homeTeam == '': # Indicates special event
             matchupStr = awayTeam + homeTeam
@@ -186,7 +204,7 @@ def buildOnDemandEvents(session, events, totalItems, filter):
             'feedType': event.feedType,
             'dateStr': dateStr
         }
-        utils.addDir(title, utils.Mode.ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT, '', params, totalItems, showfanart)
+        utils.addDir(title, utils.Mode.ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT, '', params, totalItems, showfanart, event.icon(addonPath,teams,showscores))
 
 # Method to draw the archives by date screen
 # which scrapes the external source and presents
@@ -206,8 +224,8 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, eventId, feedType, dateStr):
         return None
 
     # Build matchup
-    homeTeam = onDemandStream.homeTeam if not shortNames else hockeystreams.shortTeamName(onDemandStream.homeTeam, addonPath)
-    awayTeam = onDemandStream.awayTeam if not shortNames else hockeystreams.shortTeamName(onDemandStream.awayTeam, addonPath)
+    homeTeam = onDemandStream.homeTeam if not shortNames else shortTeamName(onDemandStream.homeTeam)
+    awayTeam = onDemandStream.awayTeam if not shortNames else shortTeamName(onDemandStream.awayTeam)
     matchupStr = awayTeam + ' @ ' + homeTeam
     if awayTeam == '' or homeTeam == '': # Indicates special event
         matchupStr = awayTeam + homeTeam
@@ -455,8 +473,8 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM(session, league, team):
         year = int(parts[2])
         dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
 
-        homeTeam = event.homeTeam if not shortNames else hockeystreams.shortTeamName(event.homeTeam, addonPath)
-        awayTeam = event.awayTeam if not shortNames else hockeystreams.shortTeamName(event.awayTeam, addonPath)
+        homeTeam = event.homeTeam if not shortNames else shortTeamName(event.homeTeam)
+        awayTeam = event.awayTeam if not shortNames else shortTeamName(event.awayTeam)
         matchupStr = awayTeam + ' @ ' + homeTeam
         if awayTeam == '' or homeTeam == '': # Indicates special event
             matchupStr = awayTeam + homeTeam
@@ -482,7 +500,7 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM(session, league, team):
             'feedType': event.feedType,
             'dateStr': dateStr
         }
-        utils.addDir(title, utils.Mode.ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT, '', params, totalItems, showfanart, event.icon())
+        utils.addDir(title, utils.Mode.ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT, '', params, totalItems, showfanart, event.icon(addonPath,teams,showscores))
 
     setViewMode()
 
@@ -517,8 +535,8 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
             year = int(parts[2])
             dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
             # Build matchup
-            homeTeam = highlight.homeTeam if not shortNames else hockeystreams.shortTeamName(highlight.homeTeam, addonPath)
-            awayTeam = highlight.awayTeam if not shortNames else hockeystreams.shortTeamName(highlight.awayTeam, addonPath)
+            homeTeam = highlight.homeTeam if not shortNames else shortTeamName(highlight.homeTeam)
+            awayTeam = highlight.awayTeam if not shortNames else shortTeamName(highlight.awayTeam)
             matchupStr = awayTeam + ' @ ' + homeTeam
             if awayTeam == '' or homeTeam == '': # Indicates special event
                 matchupStr = awayTeam + homeTeam
@@ -554,8 +572,8 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
             year = int(parts[2])
             dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
             # Build matchup
-            homeTeam = condensedGame.homeTeam if not shortNames else hockeystreams.shortTeamName(condensedGame.homeTeam, addonPath)
-            awayTeam = condensedGame.awayTeam if not shortNames else hockeystreams.shortTeamName(condensedGame.awayTeam, addonPath)
+            homeTeam = condensedGame.homeTeam if not shortNames else shortTeamName(condensedGame.homeTeam)
+            awayTeam = condensedGame.awayTeam if not shortNames else shortTeamName(condensedGame.awayTeam)
             matchupStr = awayTeam + ' @ ' + homeTeam
             if awayTeam == '' or homeTeam == '': # Indicates special event
                 matchupStr = awayTeam + homeTeam
@@ -596,8 +614,8 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT(session, eventId, feedType, dateStr):
         return None
 
     # Build matchup
-    homeTeam = onDemandStream.homeTeam if not shortNames else hockeystreams.shortTeamName(onDemandStream.homeTeam, addonPath)
-    awayTeam = onDemandStream.awayTeam if not shortNames else hockeystreams.shortTeamName(onDemandStream.awayTeam, addonPath)
+    homeTeam = onDemandStream.homeTeam if not shortNames else shortTeamName(onDemandStream.homeTeam)
+    awayTeam = onDemandStream.awayTeam if not shortNames else shortTeamName(onDemandStream.awayTeam)
     matchupStr = awayTeam + ' @ ' + homeTeam
     if awayTeam == '' or homeTeam == '': # Indicates special event
         matchupStr = awayTeam + homeTeam
@@ -721,8 +739,8 @@ def buildLiveEvents(session, events, totalItems, filter):
         elif event.isFinal:
             prefix = '[Final] '
         # Build matchup
-        homeTeam = event.homeTeam if not shortNames else hockeystreams.shortTeamName(event.homeTeam, addonPath)
-        awayTeam = event.awayTeam if not shortNames else hockeystreams.shortTeamName(event.awayTeam, addonPath)
+        homeTeam = event.homeTeam if not shortNames else shortTeamName(event.homeTeam)
+        awayTeam = event.awayTeam if not shortNames else shortTeamName(event.awayTeam)
         matchupStr = awayTeam + ' @ ' + homeTeam
         if awayTeam == '' or homeTeam == '': # Indicates special event
             matchupStr = awayTeam + homeTeam
@@ -771,17 +789,17 @@ def buildLiveEvents(session, events, totalItems, filter):
             }
             print str(params)
             print 'addDir: ' + title
-            utils.addDir(title, utils.Mode.LIVE_FINALEVENT, '', params, totalItems, showfanart, event.icon())
+            utils.addDir(title, utils.Mode.LIVE_FINALEVENT, '', params, totalItems, showfanart, event.icon(addonPath,teams,showscores))
         elif event.isFuture:
             refreshParams = {
                 'refresh': 'True'
             }
-            utils.addDir(title, mode, '', refreshParams, totalItems, showfanart, event.icon())
+            utils.addDir(title, mode, '', refreshParams, totalItems, showfanart, event.icon(addonPath,teams,showscores))
         else:
             params = {
                 'eventId': event.eventId
             }
-            utils.addDir(title, utils.Mode.LIVE_EVENT, '', params, totalItems, showfanart, event.icon())
+            utils.addDir(title, utils.Mode.LIVE_EVENT, '', params, totalItems, showfanart, event.icon(addonPath,teams,showscores))
 
 # Method to draw the live streams screen
 # which scrapes the external source and presents
@@ -801,8 +819,8 @@ def LIVE_EVENT(session, eventId):
     # Build prefix
     prefix = '[COLOR blue][B][LIVE][/B][/COLOR] '
     # Build matchup
-    homeTeam = liveStream.homeTeam if not shortNames else hockeystreams.shortTeamName(liveStream.homeTeam, addonPath)
-    awayTeam = liveStream.awayTeam if not shortNames else hockeystreams.shortTeamName(liveStream.awayTeam, addonPath)
+    homeTeam = liveStream.homeTeam if not shortNames else shortTeamName(liveStream.homeTeam)
+    awayTeam = liveStream.awayTeam if not shortNames else shortTeamName(liveStream.awayTeam)
     matchupStr = awayTeam + ' @ ' + homeTeam
     if awayTeam == '' or homeTeam == '': #indicates special event
         matchupStr = awayTeam + homeTeam
@@ -985,8 +1003,8 @@ def buildLiveStreams(session, events, totalItems, filter):
         elif event.isFinal:
             prefix = '[Final] '
         # Build matchup
-        homeTeam = event.homeTeam if not shortNames else hockeystreams.shortTeamName(event.homeTeam, addonPath)
-        awayTeam = event.awayTeam if not shortNames else hockeystreams.shortTeamName(event.awayTeam, addonPath)
+        homeTeam = event.homeTeam if not shortNames else shortTeamName(event.homeTeam)
+        awayTeam = event.awayTeam if not shortNames else shortTeamName(event.awayTeam)
         matchupStr = awayTeam + ' @ ' + homeTeam
         if awayTeam == '' or homeTeam == '': # Indicates special event
             matchupStr = awayTeam + homeTeam
@@ -1034,12 +1052,12 @@ def buildLiveStreams(session, events, totalItems, filter):
                 'feedType': str(event.feedType)
             }
             print str(params)
-            utils.addDir(title, utils.Mode.LIVE_FINALEVENT, '', params, totalItems, showfanart, event.icon())
+            utils.addDir(title, utils.Mode.LIVE_FINALEVENT, '', params, totalItems, showfanart, event.icon(addonPath,teams,showscores))
         elif event.isFuture:
             refreshParams = {
                 'refresh': 'True'
             }
-            utils.addDir(title, mode, '', refreshParams, totalItems, showfanart, event.icon())
+            utils.addDir(title, mode, '', refreshParams, totalItems, showfanart, event.icon(addonPath,teams,showscores))
         else:
             # Add links
             if truelive and liveresolution != 'SD Only' and liveresolution != 'MD Only' and event.trueLiveHD != None:

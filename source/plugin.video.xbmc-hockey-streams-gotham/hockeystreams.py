@@ -32,13 +32,15 @@ class Session():
         return repr('Username: ' + self.username + ', Membership: ' + self.membership + ', Token: ' + self.token)
 
 class IconSupport():
-    def __init__(self, homeTeam, awayTeam, startTime = None, period = None, homeScore= None, awayScore = None):
+    #def __init__(self, homeTeam, awayTeam, startTime = None, period = None, homeScore= None, awayScore = None, isFinal = False, isFuture = False):
+    def __init__(self, homeTeam, awayTeam, startTime = None, period = None, homeScore= None, awayScore = None, date = None):
         self.homeTeam = homeTeam
         self.awayTeam = awayTeam
         self.startTime = startTime
         self.period = period 
         self.homeScore = homeScore
         self.awayScore = awayScore
+        self.date = date
     
 #    def clearTextures(self,saveLocation):
 #        print 'Clearing Textures13 database entries.'
@@ -48,20 +50,53 @@ class IconSupport():
 #        removed = c.execute('DELETE FROM texture WHERE url=\''+saveLocation+'\'')
 #        print 'Removed [' + str(removed.rowcount) + '] entries from the texture table'
 
-    def icon(self):
-        print 'Generating icon ' + self.homeTeam + '/' + self.awayTeam
-        icon = Image.open(utils.emptyIconPath())
-        draw = ImageDraw.Draw(icon)
-        font = ImageFont.truetype(utils.fontPath(), 26)
-        if (self.period is not None):
-          print 'PERIOD: ' + self.period
-          draw.text((10, 10), self.period, font=font, fill=(0,0,0,255))
-        saveLocation = utils.tempDir() + self.awayTeam.replace(" ", "") + "_" + self.homeTeam.replace(" ","") + '.png'
-        print 'Saved icon to ' + saveLocation
-        #self.clearTextures(saveLocation)
-        icon.save(saveLocation, 'PNG', compress_level = 4)
-        return saveLocation
-    
+    def hasLogo(self,team,teams):
+        if (team in teams):
+          print teams[team]
+          return 'logo' in teams[team]
+        return False
+        #return team in teams and "logo" in teams[team]
+
+    def getLogo(self,team,teams):
+        return teams[team]['logo']
+
+    def getAbb(self,team,teams):
+        return teams[team]['abbreviation']
+
+    def icon(self,addonPath,teams,showscores = False):
+        if (self.hasLogo(self.awayTeam.lower(),teams) and self.hasLogo(self.homeTeam.lower(),teams)):
+          print 'Generating icon ' + self.homeTeam + '/' + self.awayTeam
+          timeFont = ImageFont.truetype(utils.boldFontPath(), 18)
+          abbFont = ImageFont.truetype(utils.boldFontPath(), 18)
+          scoresFont = ImageFont.truetype(utils.boldFontPath(), 48)
+          icon = Image.open(utils.emptyIconPath())
+          draw = ImageDraw.Draw(icon)
+          awayTeam = Image.open(os.path.join(addonPath,self.getLogo(self.awayTeam.lower(),teams)))    
+          icon.paste(awayTeam, (10,80), awayTeam)
+          draw.text((120,100), self.getAbb(self.awayTeam.lower(),teams), font = abbFont, fill=(0,0,0,255))
+          homeTeam = Image.open(os.path.join(addonPath,self.getLogo(self.homeTeam.lower(),teams)))
+          icon.paste(homeTeam, (10,160), homeTeam)
+          draw.text((120,180), self.getAbb(self.homeTeam.lower(),teams), font = abbFont, fill=(0,0,0,255))
+          if (hasattr(self, 'isFinal') and self.isFinal):
+            draw.text((10, 16), "Final", font=timeFont, fill=(0,0,0,255))
+          elif (self.period is not None):
+            draw.text((10, 16), self.period, font=timeFont, fill=(0,0,0,255))
+          elif (self.date is not None):
+            draw.text((10, 16), self.date, font=timeFont, fill=(0,0,0,255))
+
+          if (showscores and self.homeScore is not None and self.awayScore is not None):
+            draw.text((200, 80), self.awayScore, font=scoresFont, fill=(0,0,0,255))
+            draw.text((200, 155), self.homeScore, font=scoresFont, fill=(0,0,0,255))
+
+          saveLocation = utils.tempDir() + self.awayTeam.replace(" ", "") + "_" + self.homeTeam.replace(" ","") + '.png'
+          print 'Saved icon to ' + saveLocation
+          #self.clearTextures(saveLocation)
+          icon.save(saveLocation, 'PNG', compress_level = 4)
+          return saveLocation
+        else:
+          return None
+
+   
 # Represents a live event between two teams
 class LiveEvent(IconSupport):
 
@@ -122,7 +157,7 @@ class OnDemandEvent(IconSupport):
 
     # Creates a new event instance
     def __init__(self, eventId, date, event, homeTeam, awayTeam, feedType = None):
-        IconSupport.__init__(self,homeTeam,awayTeam)
+        IconSupport.__init__(self,homeTeam,awayTeam, date = date)
         self.eventId = eventId
         self.date = date
         self.event = event
@@ -428,7 +463,6 @@ def teams(session, league = None):
 
     # Parse the teams response
     js = json.loads(page)
-    print 'teams: ' + js
 
     # Check the api request was successful
     __checkStatus(js)
@@ -682,6 +716,7 @@ def parseOnDemandEvents(url):
 
     # Get the ondemand array
     onDemand = js['ondemand']
+    print 'OnDEMAND: ' + str(onDemand)
 
     # Check on demand
     if onDemand == None:
@@ -1238,26 +1273,6 @@ def liveEventStreams(session, eventId, location=None):
                 result['truelive.sd'] = flashStreamSource
 
     return LiveStream(eventId, event, homeTeam, homeScore, awayTeam, awayScore, startTime, period, feedType, result)
-
-# Method to get the short team name of a team
-# @param teamName the team name to get the shortened version for
-# @param root the root file path to append the resource file path to
-# @return a short team name or the original team name if not found
-def shortTeamName(teamName, root):
-    # Load dictionary of team names on first call
-    if ShortTeams.NAMES == None:
-        path = os.path.join(root, 'resources', 'data', 'teams.json')
-        f = open(path, 'rb')
-        content = f.read()
-        f.close()
-        ShortTeams.NAMES = json.loads(content)
-
-    # Get lower case key name and check it exists
-    teamNameLower = teamName.lower()
-    if teamNameLower in ShortTeams.NAMES:
-        return ShortTeams.NAMES[teamNameLower] # It does so get name
-    else:
-        return teamName # It doesn't return original
 
 # Compute the date utilized to determine current day live 
 # once a game is final.  Used to provide on-demand events
