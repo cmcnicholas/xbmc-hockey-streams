@@ -1,6 +1,4 @@
-import urllib, urllib2, datetime, time, json, os, utils, atexit
-from PIL import Image, ImageDraw, ImageFont
-from sqlite3 import dbapi2 as sqlite
+import urllib, urllib2, datetime, time, json, os, utils
 
 # xbmc-hockey-streams
 # author: craig mcnicholas, swedemon
@@ -31,62 +29,12 @@ class Session():
     def __str__(self):
         return repr('Username: ' + self.username + ', Membership: ' + self.membership + ', Token: ' + self.token)
 
-class IconSupport():
-    def __init__(self, homeTeam, awayTeam, startTime = None, period = None, homeScore= None, awayScore = None, date = None):
-        self.homeTeam = homeTeam
-        self.awayTeam = awayTeam
-        self.startTime = startTime
-        self.period = period 
-        self.homeScore = homeScore
-        self.awayScore = awayScore
-        self.date = date
-    
-    def hasLogo(self,team,teams):
-        return team in teams and 'logo' in teams[team]
-
-    def getLogo(self,team,teams):
-        return teams[team]['logo']
-
-    def getAbb(self,team,teams):
-        return teams[team]['abbreviation']
-
-    def icon(self,addonPath,teams,showscores = False,extraText = None):
-        if (self.hasLogo(self.awayTeam.lower(),teams) and self.hasLogo(self.homeTeam.lower(),teams)):
-          print 'Generating icon ' + self.homeTeam + '/' + self.awayTeam
-          timeFont = ImageFont.truetype(utils.boldFontPath(), 18)
-          abbFont = ImageFont.truetype(utils.boldFontPath(), 18)
-          scoresFont = ImageFont.truetype(utils.boldFontPath(), 48)
-          icon = Image.open(utils.emptyIconPath())
-          draw = ImageDraw.Draw(icon)
-          awayTeam = Image.open(os.path.join(addonPath,self.getLogo(self.awayTeam.lower(),teams)))    
-          icon.paste(awayTeam, (10,60+1), awayTeam)
-          draw.text((120,60+40), self.getAbb(self.awayTeam.lower(),teams), font = abbFont, fill=(0,0,0,255))
-          homeTeam = Image.open(os.path.join(addonPath,self.getLogo(self.homeTeam.lower(),teams)))
-          icon.paste(homeTeam, (10,60+98+1), homeTeam)
-          draw.text((120,60+98+40), self.getAbb(self.homeTeam.lower(),teams), font = abbFont, fill=(0,0,0,255))
-          if (hasattr(self, 'isFinal') and self.isFinal):
-            draw.text((10, 16), 'Final' + (' ' + extraText if (extraText is not None) else ''), font=timeFont, fill=(0,0,0,255))
-          elif (self.period is not None):
-            draw.text((10, 16), self.period, font=timeFont, fill=(0,0,0,255))
-          elif (self.date is not None):
-            draw.text((10, 16), self.date, font=timeFont, fill=(0,0,0,255))
-
-          if (showscores and self.homeScore is not None and self.awayScore is not None):
-            draw.text((200, 60+25), self.awayScore, font=scoresFont, fill=(0,0,0,255))
-            draw.text((200, 60+98+25), self.homeScore, font=scoresFont, fill=(0,0,0,255))
-          saveLocation = utils.tempDir() + self.awayTeam.replace(" ", "") + "_" + self.homeTeam.replace(" ","") + '.png'
-          icon.save(saveLocation, 'PNG', compress_level = 1)
-          return saveLocation
-        else:
-          return None
-
-   
+        
 # Represents a live event between two teams
-class LiveEvent(IconSupport):
+class LiveEvent():
 
     # Creates a new event instance
     def __init__(self, eventId, event, homeTeam, homeScore, awayTeam, awayScore, startTime, period, isPlaying, feedType, trueLiveHD = None, trueLiveMD = None, trueLiveSD = None, hdUrl = None, mdUrl = None, sdUrl = None, srcUrl = None):
-        IconSupport.__init__(self,homeTeam,awayTeam,startTime,period,homeScore,awayScore)
         self.eventId = eventId
         self.event = event
         self.homeTeam = homeTeam
@@ -134,11 +82,10 @@ class LiveEvent(IconSupport):
         return repr('Live Event: ' + self.homeTeam + ' vs ' + self.awayTeam + ' id: ' + self.eventId + ' period: ' + self.period + ' isPlaying: ' + str(self.isPlaying))
 
 # Represents an on-demand event between two teams
-class OnDemandEvent(IconSupport):
+class OnDemandEvent():
 
     # Creates a new event instance
     def __init__(self, eventId, date, event, homeTeam, awayTeam, feedType = None):
-        IconSupport.__init__(self,homeTeam,awayTeam, date = date)
         self.eventId = eventId
         self.date = date
         self.event = event
@@ -151,11 +98,10 @@ class OnDemandEvent(IconSupport):
         return repr('OnDemand Event: ' + self.homeTeam + ' vs ' + self.awayTeam + ' @ ' + self.date + ' @ ' + self.eventId)
 
 # Represents an event stream between two teams
-class LiveStream(IconSupport):
+class LiveStream():
 
     # Creates a new streams instance
     def __init__(self, eventId, event, homeTeam, homeScore, awayTeam, awayScore, startTime, period, feedType, streamSet = None):
-        IconSupport.__init__(self,homeTeam,awayTeam,startTime,period,homeScore,awayScore)
         self.eventId = eventId
         self.event = event
         self.homeTeam = homeTeam
@@ -172,11 +118,10 @@ class LiveStream(IconSupport):
         return repr('Live Event Stream: ' + self.homeTeam + ' vs ' + self.awayTeam + ' @ ' + self.eventId)
 
 # Represents an event stream between two teams
-class OnDemandStream(IconSupport):
+class OnDemandStream():
 
     # Creates a new streams instance
     def __init__(self, eventId, event, homeTeam, awayTeam, streamSet = None):
-        IconSupport.__init__(self,homeTeam,awayTeam)
         self.eventId = eventId
         self.event = event
         self.homeTeam = homeTeam
@@ -188,10 +133,9 @@ class OnDemandStream(IconSupport):
         return repr('On Demand Event Stream: ' + self.homeTeam + ' vs ' + self.awayTeam + ' @ ' + self.eventId)
 
 # Represents a highlight
-class Highlight(IconSupport):
+class Highlight():
     # Creates a new highlight instance
     def __init__(self, eventId, date, event, homeTeam, awayTeam, lowQualitySrc, medQualitySrc, highQualitySrc, homeSrc, awaySrc):
-        IconSupport.__init__(self,homeTeam,awayTeam)
         self.eventId = eventId
         self.date = date
         self.event = event
@@ -208,10 +152,9 @@ class Highlight(IconSupport):
         return repr('Highlight: ' + self.homeTeam + ' vs ' + self.awayTeam + ' ID ' + self.eventId + ' on ' + self.date)
 
 # Represents a condensed game
-class CondensedGame(IconSupport):
+class CondensedGame():
     # Creates a new instance
     def __init__(self, eventId, date, event, homeTeam, awayTeam, lowQualitySrc, medQualitySrc, highQualitySrc, homeSrc, awaySrc):
-        IconSupport.__init__(self,homeTeam,awayTeam)
         self.eventId = eventId
         self.date = date
         self.event = event

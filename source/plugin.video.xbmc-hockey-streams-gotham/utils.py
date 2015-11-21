@@ -69,20 +69,8 @@ def parseParamString(params, key):
         pass
     return value
 
-def emptyIconPath():
-    return xbmc.translatePath('special://home/addons/' + addonId + '/empty_icon.png')
-
-def regularFontPath():
-    return xbmc.translatePath('special://home/addons/' + addonId + '/resources/data/fonts/Open_Sans/OpenSans-Regular.ttf')
-
-def boldFontPath():
-    return xbmc.translatePath('special://home/addons/' + addonId + '/resources/data/fonts/Open_Sans/OpenSans-Bold.ttf')
-
-def teamsJson():
-    return xbmc.translatePath('special://home/addons/' + addonId + '/resources/data/teams.json')
-
-def texturesDb():
-    return xbmc.translatePath('special://home/userdata/Database/Textures13.db')
+def addonPath():
+    return xbmc.translatePath('special://home/addons/' + addonId)
 
 def tempDir():
     return xbmc.translatePath('special://temp')
@@ -95,7 +83,7 @@ def tempDir():
 # @return a flag indicating success
 def addLink(name, url, image, totalItems = None, showfanart = None, icon = None):
     ok = True
-    thumbnail = icon or ('special://home/addons/' + addonId + '/Ice-Hockey-icon.png')
+    thumbnail = icon.save() if (icon) else 'special://home/addons/' + addonId + '/Ice-Hockey-icon.png'
     item = xbmcgui.ListItem(name, iconImage = 'DefaultVideo.png', thumbnailImage = thumbnail)
     item.setInfo(type = 'Video', infoLabels = { 'Title': name })
     if showfanart:
@@ -114,13 +102,12 @@ def addLink(name, url, image, totalItems = None, showfanart = None, icon = None)
 # @param totalItems [optional] the total number of items to add to show progress
 # @return a flag indicating success
 def addDir(name, mode, image, params, totalItems = None, showfanart = None, icon = None):
-    thumbnail = icon or ('special://home/addons/' + addonId + '/Ice-Hockey-icon.png')
+    thumbnail = icon.save() if (icon) else 'special://home/addons/' + addonId + '/Ice-Hockey-icon.png'
     url = sys.argv[0] + "?mode=" + str(mode)
     if params != None:
         for k, v in params.iteritems():
             url += '&' + k + '=' + urllib.quote_plus(v)
     ok = True
-    #item = xbmcgui.ListItem(name, iconImage = 'DefaultFolder.png', thumbnailImage = 'special://home/addons/' + addonId + '/Ice-Hockey-icon.png')
     item = xbmcgui.ListItem(name, iconImage = 'DefaultFolder.png', thumbnailImage = thumbnail)
     item.setInfo(type = 'Video', infoLabels = { 'Title': name })
     if showfanart:
