@@ -1,6 +1,6 @@
 import xbmc, xbmcplugin, xbmcaddon, xbmcgui
 import hockeystreams, utils
-import os, datetime, threading, random, time, json, uuid, glob
+import os, datetime, threading, random, time, json, uuid, glob, tempfile
 from PIL import Image, ImageDraw, ImageFont
 
 # xbmc-hockey-streams
@@ -36,15 +36,14 @@ class Icon():
         homeTeamLogo = Image.open(os.path.join(addonPath,homeTeam['logo']))
         icon.paste(homeTeamLogo, (10,60+98+1), homeTeamLogo)
         draw.text((120,60+98+40), homeTeam['abbreviation'], font = Icon.abbFont, fill="black")
-        self.headerW, self.headerH = draw.textsize(header, font = Icon.headerFont)
         draw.text((10, 16), header, font = Icon.headerFont, fill="black")
         if (homeScore is not None and awayScore is not None):
-          draw.text((200, 60+25), awayScore, font = Icon.scoresFont, fill="black")
-          draw.text((200, 60+98+25), homeScore, font = Icon.scoresFont, fill="black")
+          draw.text((200, 60+15), awayScore, font = Icon.scoresFont, fill="black")
+          draw.text((200, 60+98+15), homeScore, font = Icon.scoresFont, fill="black")
         self.image = icon
 
     def filename(self):
-        return os.path.join(utils.tempDir(), 'hs_logo' + str(uuid.uuid4())[:8] + '.png')
+        return os.path.join(tempfile.gettempdir(), 'hs_logo' + str(uuid.uuid4())[:8] + '.png')
 
     def save(self):
         saveLocation = self.filename()
@@ -61,7 +60,7 @@ def createIcon(homeTeam, awayTeam, header, homeScore = None, awayScore = None):
         return None
 
 def iconCleanup():
-    for png in glob.glob(os.path.join(utils.tempDir(),'hsi_logo*.png')):
+    for png in glob.glob(os.path.join(tempfile.gettempdir(),'hs_logo*.png')):
         os.remove(png)
 
 # Method to get the short team name of a team
@@ -909,7 +908,7 @@ def LIVE_EVENT(session, eventId):
     title = prefix + liveStream.event + ': ' + matchupStr + scoreStr + periodStr + startTimeStr
     # Add links
     def icon(suffix):
-        return createIcon(liveStream.homeTeam,liveStream.awayTeam, suffix, homeScore, awayScore)
+        return createIcon(liveStream.homeTeam,liveStream.awayTeam, liveStream.feedType + suffix, homeScore, awayScore)
     if truelive and liveresolution != 'SD Only' and liveresolution != 'MD Only' and liveStream.streamSet['truelive.hd'] != None:
         suffix = ' [TrueLive HD]'
         utils.addLink(title + suffix, liveStream.streamSet['truelive.hd'], '', totalItems, showfanart, icon(suffix))
@@ -1111,13 +1110,13 @@ def buildLiveStreams(session, events, totalItems, filter):
             refreshParams = {
                 'refresh': 'True'
             }
-            icon = createIcon(liveStream.homeTeam,liveStream.awayTeam, event.startTime + ' ' + event.feedType,homeScore,awayScore) 
+            icon = createIcon(event.homeTeam,event.awayTeam, event.startTime + ' ' + event.feedType,homeScore,awayScore) 
             utils.addDir(title, mode, '', refreshParams, totalItems, showfanart, icon)
         else:
             # Add links
             def icon(suffix):
                 header = 'Live - ' + (event.feedType or "N/A") + suffix
-                return createIcon(liveStream.homeTeam,liveStream.awayTeam, header, homeScore, awayScore) 
+                return createIcon(event.homeTeam,event.awayTeam, header, homeScore, awayScore) 
             if truelive and liveresolution != 'SD Only' and liveresolution != 'MD Only' and event.trueLiveHD != None:
                 suffix = ' [TrueLive HD]'
                 utils.addLink(title + suffix, event.trueLiveHD, '', totalItems, showfanart, icon(suffix))

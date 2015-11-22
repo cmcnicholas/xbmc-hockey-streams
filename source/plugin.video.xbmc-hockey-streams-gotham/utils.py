@@ -1,6 +1,6 @@
 import xbmc, xbmcgui, xbmcplugin
 import urllib
-import sys
+import sys, tempfile
 
 # xbmc-hockey-streams
 # author: craig mcnicholas, swedemon
@@ -68,12 +68,6 @@ def parseParamString(params, key):
     except:
         pass
     return value
-
-def addonPath():
-    return xbmc.translatePath('special://home/addons/' + addonId)
-
-def tempDir():
-    return xbmc.translatePath('special://temp')
 
 # Method to add a link to the xbmc gui
 # @param name the name of the link to show
