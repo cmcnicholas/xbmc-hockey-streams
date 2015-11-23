@@ -80,14 +80,15 @@ def shortTeamName(teamName):
 def HOME():
     print 'HOME()'
     utils.addDir(addon.getLocalizedString(100005), utils.Mode.ONDEMAND, '', None, 2, showfanart)
-    updateListing = refresh
-    cacheToDisc = False
     if showaltlive:
         # utils.addDir(addon.getLocalizedString(100006), utils.Mode.LIVEEVENT, '', None, 2, showfanart)
         LIVEEVENT(session)
     else:
         # utils.addDir(addon.getLocalizedString(100006), utils.Mode.LIVE, '', None, 2, showfanart)
         LIVE(session)
+
+    updateListing = refresh
+    cacheToDisc = False
 
     setViewMode()
 

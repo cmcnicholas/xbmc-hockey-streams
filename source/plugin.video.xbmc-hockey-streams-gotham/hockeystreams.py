@@ -1,4 +1,4 @@
-import urllib, urllib2, datetime, time, json, os, utils
+import urllib, urllib2, datetime, time, json, os
 
 # xbmc-hockey-streams
 # author: craig mcnicholas, swedemon
@@ -29,7 +29,6 @@ class Session():
     def __str__(self):
         return repr('Username: ' + self.username + ', Membership: ' + self.membership + ', Token: ' + self.token)
 
-        
 # Represents a live event between two teams
 class LiveEvent():
 
@@ -377,7 +376,7 @@ def teams(session, league = None):
     
     # Create url
     url = 'https://api.hockeystreams.com/ListTeams?' + data
-    print 'teams: ' + url
+
     # Get response for teams
     request = __setupRequest(url)
     response = urllib2.urlopen(request)
@@ -639,7 +638,6 @@ def parseOnDemandEvents(url):
 
     # Get the ondemand array
     onDemand = js['ondemand']
-    print 'OnDEMAND: ' + str(onDemand)
 
     # Check on demand
     if onDemand == None:
@@ -702,7 +700,6 @@ def onDemandEventStreams(session, eventId, location=None):
 
     # Parse the live stream response
     js = json.loads(page)
-    print js
 
     # Check the api request was successful
     __checkStatus(js)
@@ -854,7 +851,7 @@ def liveEvents(session):
 
     # Parse the events response
     js = json.loads(page)
-    print js
+
     # Check the api request was successful
     __checkStatus(js)
     if API_DEBUG == True:
@@ -948,7 +945,6 @@ def liveEventStreams(session, eventId, location=None):
 
     # Parse the live stream response
     js = json.loads(page)
-    #print 'liveEventStreams: ' + js
 
     # Check the api request was successful
     __checkStatus(js)

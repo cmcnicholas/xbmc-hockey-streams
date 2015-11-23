@@ -1,6 +1,6 @@
-import xbmc, xbmcgui, xbmcplugin
+import xbmcgui, xbmcplugin
 import urllib
-import sys, tempfile
+import sys
 
 # xbmc-hockey-streams
 # author: craig mcnicholas, swedemon
