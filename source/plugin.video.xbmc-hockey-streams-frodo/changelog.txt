@@ -1,3 +1,6 @@
+[b]3.0.10[/b]
+- Added: Icon support.
+
 [b]3.0.9[/b]
 - Added: Support for Medium Quality (MD) Live streams on the front screen option
 
