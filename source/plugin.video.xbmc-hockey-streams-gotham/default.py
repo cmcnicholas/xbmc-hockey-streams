@@ -46,8 +46,13 @@ class Icon():
         return os.path.join(tempfile.gettempdir(), 'hs_logo' + str(uuid.uuid4())[:8] + '.png')
 
     def save(self):
-        saveLocation = self.filename()
-        self.image.save(saveLocation, 'PNG', compress_level = 1)
+        try:
+          saveLocation = self.filename()
+          self.image.save(saveLocation, 'PNG', compress_level = 1)
+        except:
+          e = sys.exc_info()[0]
+          print 'Could not save icon: %s' % e
+          saveLocation = 'special://home/addons/' + addonId + '/Ice-Hockey-icon.png'
         return saveLocation
 
 def createIcon(homeTeam, awayTeam, header, homeScore = None, awayScore = None):
@@ -60,8 +65,14 @@ def createIcon(homeTeam, awayTeam, header, homeScore = None, awayScore = None):
         return None
 
 def iconCleanup():
-    for png in glob.glob(os.path.join(tempfile.gettempdir(),'hs_logo*.png')):
+    try:
+      tempdir = tempfile.gettempdir()
+      for png in glob.glob(os.path.join(tempfile.gettempdir(),'hs_logo*.png')):
         os.remove(png)
+    except IOError as e:
+      print 'iconCleanup failed: ' + str(e)
+      pass
+
 
 # Method to get the short team name of a team
 # @param teamName the team name to get the shortened version for
