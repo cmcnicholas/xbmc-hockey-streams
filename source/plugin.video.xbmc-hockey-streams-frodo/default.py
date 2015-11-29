@@ -1105,7 +1105,7 @@ def buildLiveStreams(session, events, totalItems, filter):
                 'team': str(team),
                 'feedType': str(event.feedType)
             }
-            icon = createIcon(liveStream.homeTeam,liveStream.awayTeam, "Final - " + event.feedType, homeScore, awayScore) 
+            icon = createIcon(event.homeTeam,event.awayTeam, "Final - " + event.feedType, homeScore, awayScore) 
             utils.addDir(title, utils.Mode.LIVE_FINALEVENT, '', params, totalItems, showfanart, icon)
         elif event.isFuture:
             refreshParams = {
