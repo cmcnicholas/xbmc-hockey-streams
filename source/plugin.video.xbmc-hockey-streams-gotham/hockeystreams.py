@@ -1193,26 +1193,6 @@ def liveEventStreams(session, eventId, location=None):
 
     return LiveStream(eventId, event, homeTeam, homeScore, awayTeam, awayScore, startTime, period, feedType, result)
 
-# Method to get the short team name of a team
-# @param teamName the team name to get the shortened version for
-# @param root the root file path to append the resource file path to
-# @return a short team name or the original team name if not found
-def shortTeamName(teamName, root):
-    # Load dictionary of team names on first call
-    if ShortTeams.NAMES == None:
-        path = os.path.join(root, 'resources', 'data', 'teams.json')
-        f = open(path, 'rb')
-        content = f.read()
-        f.close()
-        ShortTeams.NAMES = json.loads(content)
-
-    # Get lower case key name and check it exists
-    teamNameLower = teamName.lower()
-    if teamNameLower in ShortTeams.NAMES:
-        return ShortTeams.NAMES[teamNameLower] # It does so get name
-    else:
-        return teamName # It doesn't return original
-
 # Compute the date utilized to determine current day live 
 # once a game is final.  Used to provide on-demand events
 # for the current day.
