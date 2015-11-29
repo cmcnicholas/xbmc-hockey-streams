@@ -69,8 +69,9 @@ def iconCleanup():
       tempdir = tempfile.gettempdir()
       for png in glob.glob(os.path.join(tempfile.gettempdir(),'hs_logo*.png')):
         os.remove(png)
-    except IOError as e:
-      print 'iconCleanup failed: ' + str(e)
+    except:
+      e = sys.exc_info()[0]
+      print 'iconCleanup failed: %s' % e
       pass
 
 # Method to get the short team name of a team
