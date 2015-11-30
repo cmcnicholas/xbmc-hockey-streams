@@ -1,7 +1,6 @@
 import xbmc, xbmcplugin, xbmcaddon, xbmcgui
 import hockeystreams, utils
-import os, datetime, threading, random, time, json, uuid, glob, tempfile
-from PIL import Image, ImageDraw, ImageFont
+import os, datetime, threading, random, time
 
 # xbmc-hockey-streams
 # author: craig mcnicholas, swedemon
@@ -14,79 +13,6 @@ dataPath = 'special://profile/addon_data/' + addonId
 if not os.path.exists: os.makedirs(dataPath)
 addon = xbmcaddon.Addon(id = addonId)
 addonPath = addon.getAddonInfo('path')
-teamsJsonPath = os.path.join(addonPath, 'resources', 'data', 'teams.json')
-f = open(teamsJsonPath, 'rb')
-teamsContent = f.read()
-f.close()
-teams = json.loads(teamsContent)
-
-class Icon():
-    # some fonts we'll be using
-    headerFont = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Regular.ttf'), 18)
-    abbFont    = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Bold.ttf'), 18)
-    scoresFont = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Bold.ttf'), 48)
-    emptyIcon  = os.path.join(addonPath,'empty_icon.png')
-
-    def __init__(self, homeTeam, awayTeam, header, homeScore = None, awayScore = None):
-        icon = Image.open(Icon.emptyIcon)
-        draw = ImageDraw.Draw(icon)
-        awayTeamLogo = Image.open(os.path.join(addonPath,awayTeam['logo']))
-        icon.paste(awayTeamLogo, (10,60+1), awayTeamLogo)
-        draw.text((120,60+40), awayTeam['abbreviation'], font = Icon.abbFont, fill="black")
-        homeTeamLogo = Image.open(os.path.join(addonPath,homeTeam['logo']))
-        icon.paste(homeTeamLogo, (10,60+98+1), homeTeamLogo)
-        draw.text((120,60+98+40), homeTeam['abbreviation'], font = Icon.abbFont, fill="black")
-        draw.text((10, 16), header, font = Icon.headerFont, fill="black")
-        if (homeScore is not None and awayScore is not None):
-          draw.text((200, 60+15), awayScore, font = Icon.scoresFont, fill="black")
-          draw.text((200, 60+98+15), homeScore, font = Icon.scoresFont, fill="black")
-        self.image = icon
-
-    def filename(self):
-        return os.path.join(tempfile.gettempdir(), 'hs_logo' + str(uuid.uuid4())[:8] + '.png')
-
-    def save(self):
-        try:
-          saveLocation = self.filename()
-          self.image.save(saveLocation, 'PNG', compress_level = 1)
-        except:
-          e = sys.exc_info()[0]
-          print 'Could not save icon: %s' % e
-          saveLocation = 'special://home/addons/' + addonId + '/Ice-Hockey-icon.png'
-        return saveLocation
-
-def createIcon(homeTeam, awayTeam, header, homeScore = None, awayScore = None):
-    if (showicons and awayTeam.lower() in teams and homeTeam.lower() in teams):
-        if ('logo' in teams[awayTeam.lower()] and 'logo' in teams[homeTeam.lower()]):
-           return Icon(teams[homeTeam.lower()],teams[awayTeam.lower()],header,homeScore if (showscores) else None,awayScore if (showscores) else None)
-        else:
-           return None
-    else:
-        return None
-
-def iconCleanup():
-    try:
-      tempdir = tempfile.gettempdir()
-      for png in glob.glob(os.path.join(tempfile.gettempdir(),'hs_logo*.png')):
-        os.remove(png)
-    except:
-      e = sys.exc_info()[0]
-      print 'iconCleanup failed: %s' % e
-      pass
-
-
-# Method to get the short team name of a team
-# @param teamName the team name to get the shortened version for
-# @param root the root file path to append the resource file path to
-# @return a short team name or the original team name if not found
-def shortTeamName(teamName):
-    # Get lower case key name and check it exists
-    teamNameLower = teamName.lower()
-    if teamNameLower in teams and "shortName" in teams[teamNameLower]:
-        return teams[teamNameLower]["shortName"] # It does so get name
-    else:
-        return teamName # It doesn't return original
-
 
 # Method to draw the home screen
 def HOME():
@@ -95,12 +21,13 @@ def HOME():
     if showaltlive:
         # utils.addDir(addon.getLocalizedString(100006), utils.Mode.LIVEEVENT, '', None, 2, showfanart)
         LIVEEVENT(session)
+        updateListing = refresh
+        cacheToDisc = False
     else:
         # utils.addDir(addon.getLocalizedString(100006), utils.Mode.LIVE, '', None, 2, showfanart)
         LIVE(session)
-
-    updateListing = refresh
-    cacheToDisc = False
+        updateListing = refresh
+        cacheToDisc = False
 
     setViewMode()
 
@@ -232,8 +159,8 @@ def buildOnDemandEvents(session, events, totalItems, filter):
         dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
 
         # Build matchup
-        homeTeam = event.homeTeam if not shortNames else shortTeamName(event.homeTeam)
-        awayTeam = event.awayTeam if not shortNames else shortTeamName(event.awayTeam)
+        homeTeam = event.homeTeam if not shortNames else hockeystreams.shortTeamName(event.homeTeam, addonPath)
+        awayTeam = event.awayTeam if not shortNames else hockeystreams.shortTeamName(event.awayTeam, addonPath)
         matchupStr = awayTeam + ' @ ' + homeTeam
         if awayTeam == '' or homeTeam == '': # Indicates special event
             matchupStr = awayTeam + homeTeam
@@ -261,8 +188,7 @@ def buildOnDemandEvents(session, events, totalItems, filter):
             'feedType': event.feedType,
             'dateStr': dateStr
         }
-        icon = createIcon(event.homeTeam,event.awayTeam,event.date + " - " + event.feedType)
-        utils.addDir(title, utils.Mode.ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT, '', params, totalItems, showfanart, icon)
+        utils.addDir(title, utils.Mode.ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT, '', params, totalItems, showfanart)
 
 # Method to draw the archives by date screen
 # which scrapes the external source and presents
@@ -282,8 +208,8 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, eventId, feedType, dateStr):
         return None
 
     # Build matchup
-    homeTeam = onDemandStream.homeTeam if not shortNames else shortTeamName(onDemandStream.homeTeam)
-    awayTeam = onDemandStream.awayTeam if not shortNames else shortTeamName(onDemandStream.awayTeam)
+    homeTeam = onDemandStream.homeTeam if not shortNames else hockeystreams.shortTeamName(onDemandStream.homeTeam, addonPath)
+    awayTeam = onDemandStream.awayTeam if not shortNames else hockeystreams.shortTeamName(onDemandStream.awayTeam, addonPath)
     matchupStr = awayTeam + ' @ ' + homeTeam
     if awayTeam == '' or homeTeam == '': # Indicates special event
         matchupStr = awayTeam + homeTeam
@@ -303,44 +229,42 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, eventId, feedType, dateStr):
         feedStr = ' - ' + '[COLOR lightgreen]' + feedType + '[/COLOR]'
     # Build title
     title = onDemandStream.event + ': ' + matchupStr + dateStr
-    def icon(suffix):
-        header = (feedType or 'N/A') + suffix
-        return createIcon(onDemandStream.homeTeam,onDemandStream.awayTeam,header)
+
     if istream and ondemandresolution != 'SD Only' and onDemandStream.streamSet['istream.hd'] != None:
         suffix = ' [iStream HD]' + feedStr
-        utils.addLink(title + suffix, onDemandStream.streamSet['istream.hd'], '', totalItems, showfanart,icon(' [iStream HD]'))
+        utils.addLink(title + suffix, onDemandStream.streamSet['istream.hd'], '', totalItems, showfanart)
     if istream and ondemandresolution != 'HD Only' and onDemandStream.streamSet['istream.sd'] != None:
         suffix = ' [iStream SD]' + feedStr
-        utils.addLink(title + suffix, onDemandStream.streamSet['istream.sd'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(' [iStream SD]'))
+        utils.addLink(title + suffix, onDemandStream.streamSet['istream.sd'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
     if istream and ondemandresolution == 'All' and onDemandStream.streamSet['istream'] != None and onDemandStream.streamSet['istream'] != onDemandStream.streamSet['istream.hd']:
         suffix = ' [iStream]' + feedStr
-        utils.addLink(title + suffix, onDemandStream.streamSet['istream'], '', totalItems, showfanart, icon(' [iStream]'))
+        utils.addLink(title + suffix, onDemandStream.streamSet['istream'], '', totalItems, showfanart)
     if hls and onDemandStream.streamSet['hls'] != None:
         if 'HD.' in onDemandStream.streamSet['hls'] and ondemandresolution != 'SD Only':
             suffix = ' [HLS HD]' + feedStr
-            utils.addLink(title + suffix, onDemandStream.streamSet['hls'], '', totalItems, showfanart, icon(' [HLS HD]'))
+            utils.addLink(title + suffix, onDemandStream.streamSet['hls'], '', totalItems, showfanart)
         elif 'SD.' in onDemandStream.streamSet['hls'] and ondemandresolution != 'HD Only':
             suffix = ' [HLS SD]' + feedStr
-            utils.addLink(title + suffix, onDemandStream.streamSet['hls'], '', totalItems, showfanart, icon(' [HLS SD]'))
+            utils.addLink(title + suffix, onDemandStream.streamSet['hls'], '', totalItems, showfanart)
         else:
             suffix = ' [HLS]' + feedStr
-            utils.addLink(title + suffix, onDemandStream.streamSet['hls'], '', totalItems, showfanart, icon(' [HLS]'))
+            utils.addLink(title + suffix, onDemandStream.streamSet['hls'], '', totalItems, showfanart)
     if hls and onDemandStream.streamSet['hls.sd'] != None and ondemandresolution != 'HD Only':
         suffix = ' [HLS SD]' + feedStr
-        utils.addLink(title + suffix, onDemandStream.streamSet['hls.sd'], '', totalItems, showfanart, icon(' [HLS SD]'))
+        utils.addLink(title + suffix, onDemandStream.streamSet['hls.sd'], '', totalItems, showfanart)
     if flash and onDemandStream.streamSet['flash'] != None:
         if 'HD.' in onDemandStream.streamSet['flash']and ondemandresolution != 'SD Only':
             suffix = ' [Flash HD]' + feedStr
-            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(' [Flash HD]'))
+            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
         elif 'SD.' in onDemandStream.streamSet['flash'] and ondemandresolution != 'HD Only':
             suffix = ' [Flash SD]' + feedStr
-            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(' [Flash SD]'))
+            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
         else:
             suffix = ' [Flash]' + feedStr
-            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(' [Flash]'))
+            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
     if wmv and onDemandStream.streamSet['wmv'] != None:
         suffix = ' [WMV]' + feedStr
-        utils.addLink(title + suffix, onDemandStream.streamSet['wmv'], '', totalItems, showfanart, icon(' [WMV]'))
+        utils.addLink(title + suffix, onDemandStream.streamSet['wmv'], '', totalItems, showfanart)
 
     try:
         hTeam = onDemandStream.homeTeam
@@ -519,6 +443,7 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM(session, league, team):
     events = hockeystreams.teamOnDemandEvents(session, hockeystreams.Team(team))
 
     totalItems = len(events)
+
     for event in events:
         # Check league filter
         if league != None and len(league) > 0 and event.event != None and len(event.event) > 0:
@@ -532,8 +457,8 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM(session, league, team):
         year = int(parts[2])
         dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
 
-        homeTeam = event.homeTeam if not shortNames else shortTeamName(event.homeTeam)
-        awayTeam = event.awayTeam if not shortNames else shortTeamName(event.awayTeam)
+        homeTeam = event.homeTeam if not shortNames else hockeystreams.shortTeamName(event.homeTeam, addonPath)
+        awayTeam = event.awayTeam if not shortNames else hockeystreams.shortTeamName(event.awayTeam, addonPath)
         matchupStr = awayTeam + ' @ ' + homeTeam
         if awayTeam == '' or homeTeam == '': # Indicates special event
             matchupStr = awayTeam + homeTeam
@@ -559,8 +484,7 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM(session, league, team):
             'feedType': event.feedType,
             'dateStr': dateStr
         }
-        icon = createIcon(event.homeTeam,event.awayTeam, event.date + " - " + event.feedType)
-        utils.addDir(title, utils.Mode.ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT, '', params, totalItems, showfanart, icon)
+        utils.addDir(title, utils.Mode.ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT, '', params, totalItems, showfanart)
 
     setViewMode()
 
@@ -577,7 +501,7 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
         highlights = hockeystreams.dateOnDemandHighlights(session, date, team)
     condensedGames = []
     if showcondensed:
-        condensedGames = hockeystreams.dateOnDemandCondensed(session, date, team)
+        condensedGames = hockeystreams.dateOnDemandHighlights(session, date, team)
 
     totalItems = len(highlights) + len(condensedGames)
 
@@ -595,30 +519,28 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
             year = int(parts[2])
             dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
             # Build matchup
-            homeTeam = highlight.homeTeam if not shortNames else shortTeamName(highlight.homeTeam)
-            awayTeam = highlight.awayTeam if not shortNames else shortTeamName(highlight.awayTeam)
+            homeTeam = highlight.homeTeam if not shortNames else hockeystreams.shortTeamName(highlight.homeTeam, addonPath)
+            awayTeam = highlight.awayTeam if not shortNames else hockeystreams.shortTeamName(highlight.awayTeam, addonPath)
             matchupStr = awayTeam + ' @ ' + homeTeam
             if awayTeam == '' or homeTeam == '': # Indicates special event
                 matchupStr = awayTeam + homeTeam
             # Build title
             title = '[Highlight] ' + highlight.event + ': ' + matchupStr + dateStr
-            def icon(suffix):
-                return createIcon(highlight.homeTeam,highlight.awayTeam, "Highlights" + suffix)
 
             if highlight.highQualitySrc != None and len(highlight.highQualitySrc) > 0 and src.count(highlight.highQualitySrc) == 0:
-                utils.addLink(title + ' [Hi]', highlight.highQualitySrc, '', totalItems, showfanart, icon(' [HD]'))
+                utils.addLink(title + ' [Hi]', highlight.highQualitySrc, '', totalItems, showfanart)
                 src.append(highlight.highQualitySrc)
             if highlight.medQualitySrc != None and len(highlight.medQualitySrc) > 0 and src.count(highlight.medQualitySrc) == 0:
-                utils.addLink(title + ' [Med]', highlight.medQualitySrc, '', totalItems, showfanart, icon(' [MD]'))
+                utils.addLink(title + ' [Med]', highlight.medQualitySrc, '', totalItems, showfanart)
                 src.append(highlight.medQualitySrc)
             if highlight.lowQualitySrc != None and len(highlight.lowQualitySrc) > 0 and src.count(highlight.lowQualitySrc) == 0:
-                utils.addLink(title + ' [Lo]', highlight.lowQualitySrc, '', totalItems, showfanart, icon(' [SD]'))
+                utils.addLink(title + ' [Lo]', highlight.lowQualitySrc, '', totalItems, showfanart)
                 src.append(highlight.lowQualitySrc)
             if highlight.homeSrc != None and len(highlight.homeSrc) > 0 and src.count(highlight.homeSrc) == 0:
-                utils.addLink(title + ' [Home]', highlight.homeSrc, '', totalItems, showfanart, icon(' [Home Feed]'))
+                utils.addLink(title + ' [Home]', highlight.homeSrc, '', totalItems, showfanart)
                 src.append(highlight.homeSrc)
             if highlight.awaySrc != None and len(highlight.awaySrc) > 0 and src.count(highlight.awaySrc) == 0:
-                utils.addLink(title + ' [Away]', highlight.awaySrc, '', totalItems, showfanart,icon(' [Away Feed]'))
+                utils.addLink(title + ' [Away]', highlight.awaySrc, '', totalItems, showfanart)
                 src.append(highlight.awaySrc)
 
     for condensedGame in condensedGames:
@@ -634,30 +556,28 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
             year = int(parts[2])
             dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
             # Build matchup
-            homeTeam = condensedGame.homeTeam if not shortNames else shortTeamName(condensedGame.homeTeam)
-            awayTeam = condensedGame.awayTeam if not shortNames else shortTeamName(condensedGame.awayTeam)
+            homeTeam = condensedGame.homeTeam if not shortNames else hockeystreams.shortTeamName(condensedGame.homeTeam, addonPath)
+            awayTeam = condensedGame.awayTeam if not shortNames else hockeystreams.shortTeamName(condensedGame.awayTeam, addonPath)
             matchupStr = awayTeam + ' @ ' + homeTeam
             if awayTeam == '' or homeTeam == '': # Indicates special event
                 matchupStr = awayTeam + homeTeam
             # Build title
             title = '[Condensed] ' + condensedGame.event + ': ' + matchupStr + dateStr
-            def icon(suffix):
-                return createIcon(condensed.homeTeam,condensed.awayTeam, "Condensed" + suffix)
 
             if condensedGame.highQualitySrc != None and len(condensedGame.highQualitySrc) > 0 and src.count(condensedGame.medQualitySrc) == 0:
-                utils.addLink(title + ' [Hi]', condensedGame.highQualitySrc, '', totalItems, showfanart, icon(' [HD]'))
+                utils.addLink(title + ' [Hi]', condensedGame.highQualitySrc, '', totalItems, showfanart)
                 src.append(condensedGame.highQualitySrc)
             if condensedGame.medQualitySrc != None and len(condensedGame.medQualitySrc) > 0 and src.count(condensedGame.medQualitySrc) == 0:
-                utils.addLink(title + ' [Med]', condensedGame.medQualitySrc, '', totalItems, showfanart, icon(' [MD]'))
+                utils.addLink(title + ' [Med]', condensedGame.medQualitySrc, '', totalItems, showfanart)
                 src.append(condensedGame.medQualitySrc)
             if condensedGame.lowQualitySrc != None and len(condensedGame.lowQualitySrc) > 0 and src.count(condensedGame.lowQualitySrc) == 0:
-                utils.addLink(title + ' [Lo]', condensedGame.lowQualitySrc, '', totalItems, showfanart, icon(' [SD]'))
+                utils.addLink(title + ' [Lo]', condensedGame.lowQualitySrc, '', totalItems, showfanart)
                 src.append(condensedGame.lowQualitySrc)
             if condensedGame.homeSrc != None and len(condensedGame.homeSrc) > 0 and src.count(condensedGame.homeSrc) == 0:
-                utils.addLink(title + ' [Home]', condensedGame.homeSrc, '', totalItems, showfanart, icon(' [Home Feed]'))
+                utils.addLink(title + ' [Home]', condensedGame.homeSrc, '', totalItems, showfanart)
                 src.append(condensedGame.homeSrc)
             if condensedGame.awaySrc != None and len(condensedGame.awaySrc) > 0 and src.count(condensedGame.awaySrc) == 0:
-                utils.addLink(title + ' [Away]', condensedGame.awaySrc, '', totalItems, showfanart, icon(' [Away Feed]'))
+                utils.addLink(title + ' [Away]', condensedGame.awaySrc, '', totalItems, showfanart)
                 src.append(condensedGame.awaySrc)
 
 # Method to draw the archive streams by event screen
@@ -678,8 +598,8 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT(session, eventId, feedType, dateStr):
         return None
 
     # Build matchup
-    homeTeam = onDemandStream.homeTeam if not shortNames else shortTeamName(onDemandStream.homeTeam)
-    awayTeam = onDemandStream.awayTeam if not shortNames else shortTeamName(onDemandStream.awayTeam)
+    homeTeam = onDemandStream.homeTeam if not shortNames else hockeystreams.shortTeamName(onDemandStream.homeTeam, addonPath)
+    awayTeam = onDemandStream.awayTeam if not shortNames else hockeystreams.shortTeamName(onDemandStream.awayTeam, addonPath)
     matchupStr = awayTeam + ' @ ' + homeTeam
     if awayTeam == '' or homeTeam == '': # Indicates special event
         matchupStr = awayTeam + homeTeam
@@ -699,45 +619,42 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT(session, eventId, feedType, dateStr):
         feedStr = ' - ' + '[COLOR lightgreen]' + feedType + '[/COLOR]'
     # Build title
     title = onDemandStream.event + ': ' + matchupStr + str(dateStr)
-    def icon(suffix):
-        header = (feedType or "N/A") + suffix
-        return createIcon(onDemandStream.homeTeam,onDemandStream.awayTeam, header)
 
     if istream and ondemandresolution != 'SD Only' and onDemandStream.streamSet['istream.hd'] != None:
         suffix = ' [iStream HD]' + feedStr
-        utils.addLink(title + suffix, onDemandStream.streamSet['istream.hd'], '', totalItems, showfanart, icon(' [iStream HD]'))
+        utils.addLink(title + suffix, onDemandStream.streamSet['istream.hd'], '', totalItems, showfanart)
     if istream and ondemandresolution != 'HD Only' and onDemandStream.streamSet['istream.sd'] != None:
         suffix = ' [iStream SD]' + feedStr
-        utils.addLink(title + suffix, onDemandStream.streamSet['istream.sd'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(' [iStream SD]'))
+        utils.addLink(title + suffix, onDemandStream.streamSet['istream.sd'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
     if istream and ondemandresolution == 'All' and onDemandStream.streamSet['istream'] != None and onDemandStream.streamSet['istream'] != onDemandStream.streamSet['istream.hd']:
         suffix = ' [iStream]' + feedStr
-        utils.addLink(title + suffix, onDemandStream.streamSet['istream'], '', totalItems, showfanart, icon(' [iStream]'))
+        utils.addLink(title + suffix, onDemandStream.streamSet['istream'], '', totalItems, showfanart)
     if hls and onDemandStream.streamSet['hls'] != None:
         if 'HD.' in onDemandStream.streamSet['hls'] and ondemandresolution != 'SD Only':
             suffix = ' [HLS HD]' + feedStr
-            utils.addLink(title + suffix, onDemandStream.streamSet['hls'], '', totalItems, showfanart, icon(' [HLS HD]'))
+            utils.addLink(title + suffix, onDemandStream.streamSet['hls'], '', totalItems, showfanart)
         elif 'SD.' in onDemandStream.streamSet['hls'] and ondemandresolution != 'HD Only':
             suffix = ' [HLS SD]' + feedStr
-            utils.addLink(title + suffix, onDemandStream.streamSet['hls'], '', totalItems, showfanart, icon(' [HLS SD]'))
+            utils.addLink(title + suffix, onDemandStream.streamSet['hls'], '', totalItems, showfanart)
         else:
             suffix = ' [HLS]' + feedStr
-            utils.addLink(title + suffix, onDemandStream.streamSet['hls'], '', totalItems, showfanart, icon(' [HLS]'))
+            utils.addLink(title + suffix, onDemandStream.streamSet['hls'], '', totalItems, showfanart)
     if hls and onDemandStream.streamSet['hls.sd'] != None and ondemandresolution != 'HD Only':
         suffix = ' [HLS SD]' + feedStr
-        utils.addLink(title + suffix, onDemandStream.streamSet['hls.sd'], '', totalItems, showfanart, icon(' [HLS SD]'))
+        utils.addLink(title + suffix, onDemandStream.streamSet['hls.sd'], '', totalItems, showfanart)
     if flash and onDemandStream.streamSet['flash'] != None:
         if 'HD.' in onDemandStream.streamSet['flash'] and ondemandresolution != 'SD Only':
             suffix = ' [Flash HD]' + feedStr
-            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(' [Flash HD]'))
+            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
         elif 'SD.' in onDemandStream.streamSet['flash'] and ondemandresolution != 'HD Only':
             suffix = ' [Flash SD]' + feedStr
-            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(' [Flash SD]'))
+            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
         else:
             suffix = ' [Flash]' + feedStr
-            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(' [Flash]'))
+            utils.addLink(title + suffix, onDemandStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
     if wmv and onDemandStream.streamSet['wmv'] != None:
         suffix = ' [WMV]' + feedStr
-        utils.addLink(title + suffix, onDemandStream.streamSet['wmv'], '', totalItems, showfanart, icon(' [WMV]'))
+        utils.addLink(title + suffix, onDemandStream.streamSet['wmv'], '', totalItems, showfanart)
 
     try:
         hTeam = onDemandStream.homeTeam
@@ -765,7 +682,7 @@ def LIVE(session):
             'refresh': 'True'
         }
         utils.addDir(addon.getLocalizedString(100015), mode, '', refreshParams, totalItems, showfanart)
-    
+
     buildLiveEvents(session, events, totalItems, 1) # favorite team
     buildLiveEvents(session, events, totalItems, 2) # live/coming soon
     buildLiveEvents(session, events, totalItems, 3) # final
@@ -781,6 +698,7 @@ def LIVE(session):
 # Method to build live events
 # @param filter 0 = ALL, 1 = favorite only, 2 = live/comingSoon only, 3 = final only
 def buildLiveEvents(session, events, totalItems, filter):
+
     for event in events:
         # skip condition 1
         if filter == 1 and not (event.homeTeam == session.favteam or event.awayTeam == session.favteam):
@@ -803,8 +721,8 @@ def buildLiveEvents(session, events, totalItems, filter):
         elif event.isFinal:
             prefix = '[Final] '
         # Build matchup
-        homeTeam = event.homeTeam if not shortNames else shortTeamName(event.homeTeam)
-        awayTeam = event.awayTeam if not shortNames else shortTeamName(event.awayTeam)
+        homeTeam = event.homeTeam if not shortNames else hockeystreams.shortTeamName(event.homeTeam, addonPath)
+        awayTeam = event.awayTeam if not shortNames else hockeystreams.shortTeamName(event.awayTeam, addonPath)
         matchupStr = awayTeam + ' @ ' + homeTeam
         if awayTeam == '' or homeTeam == '': # Indicates special event
             matchupStr = awayTeam + homeTeam
@@ -851,20 +769,18 @@ def buildLiveEvents(session, events, totalItems, filter):
                 'team': str(team),
                 'feedType': str(event.feedType)
             }
-            icon = createIcon(event.homeTeam,event.awayTeam, "Final - " + event.feedType, homeScore, awayScore)
-            utils.addDir(title, utils.Mode.LIVE_FINALEVENT, '', params, totalItems, showfanart, icon)
+            print str(params)
+            utils.addDir(title, utils.Mode.LIVE_FINALEVENT, '', params, totalItems, showfanart)
         elif event.isFuture:
             refreshParams = {
                 'refresh': 'True'
             }
-            icon = createIcon(event.homeTeam,event.awayTeam, event.startTime + " - " + event.feedType, homeScore, awayScore)
-            utils.addDir(title, mode, '', refreshParams, totalItems, showfanart, icon)
+            utils.addDir(title, mode, '', refreshParams, totalItems, showfanart)
         else:
             params = {
                 'eventId': event.eventId
             }
-            icon = createIcon(event.homeTeam,event.awayTeam, "Live - " + event.feedType, homeScore, awayScore)
-            utils.addDir(title, utils.Mode.LIVE_EVENT, '', params, totalItems, showfanart, icon)
+            utils.addDir(title, utils.Mode.LIVE_EVENT, '', params, totalItems, showfanart)
 
 # Method to draw the live streams screen
 # which scrapes the external source and presents
@@ -884,8 +800,8 @@ def LIVE_EVENT(session, eventId):
     # Build prefix
     prefix = '[COLOR blue][B][LIVE][/B][/COLOR] '
     # Build matchup
-    homeTeam = liveStream.homeTeam if not shortNames else shortTeamName(liveStream.homeTeam)
-    awayTeam = liveStream.awayTeam if not shortNames else shortTeamName(liveStream.awayTeam)
+    homeTeam = liveStream.homeTeam if not shortNames else hockeystreams.shortTeamName(liveStream.homeTeam, addonPath)
+    awayTeam = liveStream.awayTeam if not shortNames else hockeystreams.shortTeamName(liveStream.awayTeam, addonPath)
     matchupStr = awayTeam + ' @ ' + homeTeam
     if awayTeam == '' or homeTeam == '': #indicates special event
         matchupStr = awayTeam + homeTeam
@@ -919,58 +835,57 @@ def LIVE_EVENT(session, eventId):
         startTimeStr = ' - ' + liveStream.startTime
     # Build title
     title = prefix + liveStream.event + ': ' + matchupStr + scoreStr + periodStr + startTimeStr
+
     # Add links
-    def icon(suffix):
-        return createIcon(liveStream.homeTeam,liveStream.awayTeam, liveStream.feedType + suffix, homeScore, awayScore)
     if truelive and liveresolution != 'SD Only' and liveresolution != 'MD Only' and liveStream.streamSet['truelive.hd'] != None:
         suffix = ' [TrueLive HD]'
-        utils.addLink(title + suffix, liveStream.streamSet['truelive.hd'], '', totalItems, showfanart, icon(suffix))
+        utils.addLink(title + suffix, liveStream.streamSet['truelive.hd'], '', totalItems, showfanart)
     if truelive and liveresolution != 'SD Only' and liveresolution != 'HD Only' and liveStream.streamSet['truelive.md'] != None:
         suffix = ' [TrueLive MD]'
-        utils.addLink(title + suffix, liveStream.streamSet['truelive.md'], '', totalItems, showfanart, icon(suffix))
+        utils.addLink(title + suffix, liveStream.streamSet['truelive.md'], '', totalItems, showfanart)
     if truelive and liveresolution != 'MD Only' and liveresolution != 'HD Only' and liveStream.streamSet['truelive.sd'] != None:
         suffix = ' [TrueLive SD]'
-        utils.addLink(title + suffix, liveStream.streamSet['truelive.sd'], '', totalItems, showfanart, icon(suffix))
+        utils.addLink(title + suffix, liveStream.streamSet['truelive.sd'], '', totalItems, showfanart)
     if istream and liveresolution != 'SD Only' and liveresolution != 'MD Only' and liveStream.streamSet['istream.hd'] != None:
         suffix = ' [iStream HD]'
-        utils.addLink(title + suffix, liveStream.streamSet['istream.hd'], '', totalItems, showfanart, icon(suffix))
+        utils.addLink(title + suffix, liveStream.streamSet['istream.hd'], '', totalItems, showfanart)
     if istream and liveresolution != 'SD Only' and liveresolution != 'HD Only' and liveStream.streamSet['istream.md'] != None:
         suffix = ' [iStream MD]'
-        utils.addLink(title + suffix, liveStream.streamSet['istream.md'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(suffix))
+        utils.addLink(title + suffix, liveStream.streamSet['istream.md'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
     if istream and liveresolution != 'HD Only' and liveresolution != 'MD Only' and liveStream.streamSet['istream.sd'] != None:
         suffix = ' [iStream SD]'
-        utils.addLink(title + suffix, liveStream.streamSet['istream.sd'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(suffix))
+        utils.addLink(title + suffix, liveStream.streamSet['istream.sd'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
     if istream and liveresolution == 'All' and liveStream.streamSet['istream'] != None and liveStream.streamSet['istream'] != liveStream.streamSet['istream.hd']:
         suffix = ' [iStream]'
-        utils.addLink(title + suffix, liveStream.streamSet['istream'], '', totalItems, showfanart, icon(suffix))
+        utils.addLink(title + suffix, liveStream.streamSet['istream'], '', totalItems, showfanart)
     if flash and liveStream.streamSet['flash'] != None:
         if 'HD.' in liveStream.streamSet['flash'] and liveresolution != 'SD Only' and liveresolution != 'MD Only':
             suffix = ' [Flash HD]'
-            utils.addLink(title + suffix, liveStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(suffix))
+            utils.addLink(title + suffix, liveStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
         if 'MD.' in liveStream.streamSet['flash'] and liveresolution != 'SD Only' and liveresolution != 'HD Only':
             suffix = ' [Flash MD]'
-            utils.addLink(title + suffix, liveStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(suffix))
+            utils.addLink(title + suffix, liveStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
         elif 'SD.' in liveStream.streamSet['flash'] and liveresolution != 'MD Only' and liveresolution != 'HD Only':
             suffix = ' [Flash SD]'
-            utils.addLink(title + suffix, liveStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(suffix))
+            utils.addLink(title + suffix, liveStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
         else:
             suffix = ' [Flash]'
-            utils.addLink(title + suffix, liveStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart, icon(suffix))
+            utils.addLink(title + suffix, liveStream.streamSet['flash'].replace('f4m', 'm3u8'), '', totalItems, showfanart)
     if wmv and liveStream.streamSet['wmv'] != None:
         suffix = ' [WMV]'
-        utils.addLink(title + suffix, liveStream.streamSet['wmv'], '', totalItems, showfanart, icon(suffix))
+        utils.addLink(title + suffix, liveStream.streamSet['wmv'], '', totalItems, showfanart)
     if dvr and liveresolution != 'SD Only' and liveresolution != 'MD Only' and liveStream.streamSet['nondvrhd'] != None:
         suffix = ' [NonDVR HD]'
-        utils.addLink(title + suffix, liveStream.streamSet['nondvrhd'], '', totalItems, showfanart, icon(suffix))
+        utils.addLink(title + suffix, liveStream.streamSet['nondvrhd'], '', totalItems, showfanart)
     if dvr and liveresolution != 'SD Only' and liveresolution != 'HD Only' and liveStream.streamSet['nondvrmd'] != None:
         suffix = ' [NonDVR MD]'
-        utils.addLink(title + suffix, liveStream.streamSet['nondvrmd'], '', totalItems, showfanart, icon(suffix))
+        utils.addLink(title + suffix, liveStream.streamSet['nondvrmd'], '', totalItems, showfanart)
     if dvr and liveresolution != 'MD Only' and liveresolution != 'HD Only' and liveStream.streamSet['nondvrsd'] != None:
         suffix = ' [NonDVR SD]'
-        utils.addLink(title + suffix, liveStream.streamSet['nondvrsd'], '', totalItems, showfanart, icon(suffix))
+        utils.addLink(title + suffix, liveStream.streamSet['nondvrsd'], '', totalItems, showfanart)
     if dvr and liveresolution == 'All' and liveStream.streamSet['nondvr'] != None:
         suffix = ' [NonDVR]'
-        utils.addLink(title + suffix, liveStream.streamSet['nondvr'], '', totalItems, showfanart, icon(suffix))
+        utils.addLink(title + suffix, liveStream.streamSet['nondvr'], '', totalItems, showfanart)
 
     # Add refresh button
     refreshParams = {
@@ -1011,7 +926,7 @@ def LIVE_FINALEVENT(session, year, month, day, team, feedType):
             year = int(parts[2])
             dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
 
-            ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, event.eventId, event.feedType, dateStr, event.icon(addonPath,teams,showscores))
+            ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, event.eventId, event.feedType, dateStr)
 
 # Method to draw the live screen
 # which scrapes the external source and presents
@@ -1046,6 +961,7 @@ def LIVEEVENT(session):
 # Method to build live event streams
 # @param filter 0 = ALL, 1 = favorite only, 2 = live/comingSoon only, 3 = final only
 def buildLiveStreams(session, events, totalItems, filter):
+
     for event in events:
         # skip condition 1
         if filter == 1 and not (event.homeTeam == session.favteam or event.awayTeam == session.favteam):
@@ -1068,8 +984,8 @@ def buildLiveStreams(session, events, totalItems, filter):
         elif event.isFinal:
             prefix = '[Final] '
         # Build matchup
-        homeTeam = event.homeTeam if not shortNames else shortTeamName(event.homeTeam)
-        awayTeam = event.awayTeam if not shortNames else shortTeamName(event.awayTeam)
+        homeTeam = event.homeTeam if not shortNames else hockeystreams.shortTeamName(event.homeTeam, addonPath)
+        awayTeam = event.awayTeam if not shortNames else hockeystreams.shortTeamName(event.awayTeam, addonPath)
         matchupStr = awayTeam + ' @ ' + homeTeam
         if awayTeam == '' or homeTeam == '': # Indicates special event
             matchupStr = awayTeam + homeTeam
@@ -1103,7 +1019,6 @@ def buildLiveStreams(session, events, totalItems, filter):
             startTimeStr = ' - ' + event.startTime
         # Build title
         title = prefix + event.event + ': ' + matchupStr + scoreStr + periodStr + startTimeStr + feedStr
-        # Build icon
         if event.homeTeam == session.favteam or event.awayTeam == session.favteam:
             title = prefix + '[COLOR red][B]' + event.event + ': ' + matchupStr + scoreStr + periodStr + startTimeStr + feedStr + '[/B][/COLOR]'
 
@@ -1117,40 +1032,36 @@ def buildLiveStreams(session, events, totalItems, filter):
                 'team': str(team),
                 'feedType': str(event.feedType)
             }
-            icon = createIcon(event.homeTeam,event.awayTeam, "Final - " + event.feedType, homeScore, awayScore) 
-            utils.addDir(title, utils.Mode.LIVE_FINALEVENT, '', params, totalItems, showfanart, icon)
+            print str(params)
+            utils.addDir(title, utils.Mode.LIVE_FINALEVENT, '', params, totalItems, showfanart)
         elif event.isFuture:
             refreshParams = {
                 'refresh': 'True'
             }
-            icon = createIcon(event.homeTeam,event.awayTeam, event.startTime + ' ' + event.feedType,homeScore,awayScore) 
-            utils.addDir(title, mode, '', refreshParams, totalItems, showfanart, icon)
+            utils.addDir(title, mode, '', refreshParams, totalItems, showfanart)
         else:
             # Add links
-            def icon(suffix):
-                header = 'Live - ' + (event.feedType or "N/A") + suffix
-                return createIcon(event.homeTeam,event.awayTeam, header, homeScore, awayScore) 
             if truelive and liveresolution != 'SD Only' and liveresolution != 'MD Only' and event.trueLiveHD != None:
                 suffix = ' [TrueLive HD]'
-                utils.addLink(title + suffix, event.trueLiveHD, '', totalItems, showfanart, icon(suffix))
+                utils.addLink(title + suffix, event.trueLiveHD, '', totalItems, showfanart)
             if truelive and liveresolution != 'SD Only' and liveresolution != 'HD Only' and event.trueLiveMD != None:
                 suffix = ' [TrueLive MD]'
-                utils.addLink(title + suffix, event.trueLiveMD, '', totalItems, showfanart, icon(suffix))
+                utils.addLink(title + suffix, event.trueLiveMD, '', totalItems, showfanart)
             if truelive and liveresolution != 'MD Only' and liveresolution != 'HD Only' and event.trueLiveSD != None:
                 suffix = ' [TrueLive SD]'
-                utils.addLink(title + suffix, event.trueLiveSD, '', totalItems, showfanart, icon(suffix))
+                utils.addLink(title + suffix, event.trueLiveSD, '', totalItems, showfanart)
             if istream and liveresolution != 'SD Only' and liveresolution != 'MD Only' and event.hdUrl != None:
                 suffix = ' [iStream HD]'
-                utils.addLink(title + suffix, event.hdUrl, '', totalItems, showfanart, icon(suffix))
+                utils.addLink(title + suffix, event.hdUrl, '', totalItems, showfanart)
             if istream and liveresolution != 'SD Only' and liveresolution != 'HD Only' and event.mdUrl != None:
                 suffix = ' [iStream MD]'
-                utils.addLink(title + suffix, event.mdUrl, '', totalItems, showfanart, icon(suffix))
+                utils.addLink(title + suffix, event.mdUrl, '', totalItems, showfanart)
             if istream and liveresolution != 'HD Only' and liveresolution != 'MD Only' and event.sdUrl != None:
                 suffix = ' [iStream SD]'
-                utils.addLink(title + suffix, event.sdUrl, '', totalItems, showfanart, icon(suffix))
+                utils.addLink(title + suffix, event.sdUrl, '', totalItems, showfanart)
             if istream and liveresolution == 'All' and event.srcUrl != None:
                 suffix = ' [iStream]'
-                utils.addLink(title + suffix, event.srcUrl, '', totalItems, showfanart, icon(suffix))
+                utils.addLink(title + suffix, event.srcUrl, '', totalItems, showfanart)
 
 # Method to populate recent events
 # which scrapes the external source and presents
@@ -1190,8 +1101,6 @@ ondemandresolution = addon.getSetting('ondemandresolution')
 liveresolution = addon.getSetting('liveresolution')
 shortNames = addon.getSetting('shortnames')
 shortNames = shortNames != None and shortNames.lower() == 'true'
-showicons = addon.getSetting('showicons')
-showicons = showicons != None and showicons.lower() == 'true'
 showscores = addon.getSetting('showscores')
 showscores = showscores != None and showscores.lower() == 'true'
 showaltlive = addon.getSetting('showaltlive')
@@ -1323,8 +1232,6 @@ else:
     except Exception as e:
         print 'Error creating an ip exception: ' + str(e)
         utils.showMessage(addon.getLocalizedString(100018), addon.getLocalizedString(100019))
-
-iconCleanup()
 
 # Invoke mode function
 if mode == None or mode == utils.Mode.HOME:
