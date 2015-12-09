@@ -1,4 +1,4 @@
-import urllib, urllib2, datetime, time, json, os
+import urllib, urllib2, datetime, time, json, os, traceback
 
 # xbmc-hockey-streams
 # author: craig mcnicholas, swedemon
@@ -84,12 +84,14 @@ class LiveEvent():
 class OnDemandEvent():
 
     # Creates a new event instance
-    def __init__(self, eventId, date, event, homeTeam, awayTeam, feedType = None):
+    def __init__(self, eventId, date, event, homeTeam, awayTeam, feedType = None, homeScore = None, awayScore = None):
         self.eventId = eventId
         self.date = date
         self.event = event
         self.homeTeam = homeTeam
         self.awayTeam = awayTeam
+        self.homeScore = homeScore
+        self.awayScore = awayScore
         self.feedType = feedType
 
     # Overrides this classes string value
@@ -291,6 +293,33 @@ def checkIp(username):
     else:
         return False
 
+
+# Method to get scores for a date
+# @param date the date to get the scores for
+# @return the scores structure
+def getScores(date):
+  API_KEY = '0d2fda77ef1b3ed5a7bae58572d6fbda'
+  data = urllib.urlencode({
+    'key': API_KEY,
+    'date': date
+  })
+  url = 'https://api.hockeystreams.com/Scores?' + data
+  # Get response for events
+  request = __setupRequest(url)
+  response = urllib2.urlopen(request)
+  page = response.read()
+  response.close()
+
+  # Parse the events response
+  js = json.loads(page)
+
+  if API_DEBUG == True:
+    print url + ' ' + str(js)
+
+  # Get the ondemand array
+  return js['scores']
+
+
 # Method to generate an ip exception
 # @param session the session details to login with
 # @return a flag indicating success
@@ -422,7 +451,7 @@ def teams(session, league = None):
 # @param session the session details to login with
 # @param date a date instance to return the events for
 # @return a list of events
-def dateOnDemandEvents(session, date):
+def dateOnDemandEvents(session, date, withScores = False):
     # Strip the date into usable strings for formatting
     year = str(date.year)
     month = '%02d' % (date.month,)
@@ -433,13 +462,11 @@ def dateOnDemandEvents(session, date):
         'token': session.token,
         'date': month + '/' + day + '/' + year
     })
-    
-    # Create url
-    url = 'https://api.hockeystreams.com/GetOnDemand?' + data
 
-    events = parseOnDemandEvents(url)
+    url = 'https://api.hockeystreams.com/GetOnDemand?' + data
+    scores = getScores(month + '/' + day + '/' + year) if withScores else []
     
-    return events
+    return parseOnDemandEvents(url, scores)
 
 # Method to get on-demand highlights for a given date
 # @param session the session details to login with
@@ -490,12 +517,13 @@ def dateOnDemandHighlights(session, date = None, team = None):
     try:
         js = json.loads(page)
     except Exception as e:
-        print 'Warning: Unable to retrieve highlights for date: ' + str(date) + ' team: ' + str(team)
+        print 'Warning: Unable to retrieve highlights for date: ' + str(date) + ' team: ' + str(team) + ' url: ' + url
+        traceback.print_exc()
         return highlights
 
     __checkStatus(js)
     if API_DEBUG == True:
-        print url + ' ' + str(js)
+      print url + ' ' + str(js)
 
     # Get the schedule array
     highlightArray = js['highlights']
@@ -515,6 +543,9 @@ def dateOnDemandHighlights(session, date = None, team = None):
         lowQualitySrc = highlight['lowQualitySrc']
         medQualitySrc = highlight['medQualitySrc']
         highQualitySrc = highlight['highQualitySrc']
+        if medQualitySrc is not None and (highQualitySrc is None or highQualitySrc == ''):
+          nhlEventId,mp4 = [medQualitySrc.split('/')[i] for i in [-2,-1]]
+          highQualitySrc = 'http://nlds150.cdnl3nl.neulion.com/nlds_vod/nhl/vod/{0}/{1}/{2}/{3}/{4}'.format(year,month,day,nhlEventId,mp4.replace('1600','4500'))
         homeSrc = highlight['homeSrc']
         awaySrc = highlight['awaySrc']
         
@@ -607,7 +638,7 @@ def dateOnDemandCondensed(session, date = None, team = None):
 # @param session the session details to login with
 # @param team a team instance to return the events for
 # @return a list of events
-def teamOnDemandEvents(session, team):
+def teamOnDemandEvents(session, team, withScores = False):
     # Setup events for team data
     data = urllib.urlencode({
         'token': session.token,
@@ -617,12 +648,12 @@ def teamOnDemandEvents(session, team):
     # Create url
     url = 'https://api.hockeystreams.com/GetOnDemand?' + data
 
-    return parseOnDemandEvents(url)
+    return parseOnDemandEvents(url,[])
 
 # Method to parse an on demand events request
 # @param url the url to get the json response from and parse
 # @return a list of ondemand events for the given api url
-def parseOnDemandEvents(url):
+def parseOnDemandEvents(url,scores):
     # Get response for events
     request = __setupRequest(url)
     response = urllib2.urlopen(request)
@@ -652,6 +683,14 @@ def parseOnDemandEvents(url):
         homeTeam = item['homeTeam']
         awayTeam = item['awayTeam']
         feedType = item['feedType']
+        if len(scores) > 0:
+          score = filter(lambda x: x['homeTeam'] == homeTeam, scores)
+          if len(score) > 0:
+            homeScore,awayScore = [score[0][x] for x in ['homeScore','awayScore']]
+          else:
+            homeScore,awayScore = None,None
+        else:
+          homeScore,awayScore = None,None
 
         # Check on demand item id
         if eventId == None:
@@ -669,7 +708,7 @@ def parseOnDemandEvents(url):
         if awayTeam == None:
             raise ApiException('API Error: The away team was null');
 
-        events.append(OnDemandEvent(eventId, date, event, homeTeam, awayTeam, feedType))
+        events.append(OnDemandEvent(eventId, date, event, homeTeam, awayTeam, feedType, homeScore = homeScore, awayScore = awayScore))
 
     return events
 
@@ -1192,26 +1231,6 @@ def liveEventStreams(session, eventId, location=None):
                 result['truelive.sd'] = flashStreamSource
 
     return LiveStream(eventId, event, homeTeam, homeScore, awayTeam, awayScore, startTime, period, feedType, result)
-
-# Method to get the short team name of a team
-# @param teamName the team name to get the shortened version for
-# @param root the root file path to append the resource file path to
-# @return a short team name or the original team name if not found
-def shortTeamName(teamName, root):
-    # Load dictionary of team names on first call
-    if ShortTeams.NAMES == None:
-        path = os.path.join(root, 'resources', 'data', 'teams.json')
-        f = open(path, 'rb')
-        content = f.read()
-        f.close()
-        ShortTeams.NAMES = json.loads(content)
-
-    # Get lower case key name and check it exists
-    teamNameLower = teamName.lower()
-    if teamNameLower in ShortTeams.NAMES:
-        return ShortTeams.NAMES[teamNameLower] # It does so get name
-    else:
-        return teamName # It doesn't return original
 
 # Compute the date utilized to determine current day live 
 # once a game is final.  Used to provide on-demand events
