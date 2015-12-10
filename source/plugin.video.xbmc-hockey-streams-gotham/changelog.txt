@@ -1,5 +1,8 @@
+[b]3.1.6[/b]
+- Fixed: Removed ++ from actionbronson merge.
+
 [b]3.1.5[/b]
-- Fixed: Startup bug and removed ++.
+- Fixed: Startup bug
 - Added: Improved support for highlights HD up to 4500 kbps, another hack fix.
 
 [b]3.1.4[/b]
