@@ -1,3 +1,8 @@
+[b]3.1.7[/b]
+- Added: Icon support for other leagues - seeking volunteer to provide other logos.
+- Added: Refresh icon added.
+- Changed:  Assorted minor cosmetic changes to icons.
+
 [b]3.1.6[/b]
 - Fixed: Removed ++ from actionbronson merge.
 

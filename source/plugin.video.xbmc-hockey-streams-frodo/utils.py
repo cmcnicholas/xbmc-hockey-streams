@@ -110,6 +110,8 @@ def addLink(name, url, image, totalItems = None, showfanart = None, icon = None)
 # @return a flag indicating success
 def addDir(name, mode, image, params, totalItems = None, showfanart = None, icon = None):
     thumbnail = icon.save() if (icon) else 'special://home/addons/' + addonId + '/Ice-Hockey-icon.png'
+    if '<< Refresh >>' in name:
+        thumbnail = 'special://home/addons/' + addonId + '/Refresh_icon.png'
     url = sys.argv[0] + "?mode=" + str(mode)
     if params != None:
         for k, v in params.iteritems():

@@ -30,9 +30,9 @@ class Icon():
     def feedTypeLogo(self,feedType,homeTeam,awayTeam):
       if feedType is None:
         return None
-      elif feedType == 'Home Feed':
+      elif feedType == 'Home Feed' and 'logo' in homeTeam:
         return Image.open(os.path.join(addonPath,homeTeam['logo']).replace('.png','48x48.png'))
-      elif feedType == 'Away Feed':
+      elif feedType == 'Away Feed' and 'logo' in awayTeam:
         return Image.open(os.path.join(addonPath,awayTeam['logo']).replace('.png','48x48.png'))
       else:
         return None
@@ -42,27 +42,49 @@ class Icon():
           raise ValueError('No PIL support.')
         # some fonts we'll be using
         headerFont = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Regular.ttf'), 18)
-        abbFont    = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Bold.ttf'), 18)
+        abbFont    = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Bold.ttf'), 22)
         scoresFont = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Bold.ttf'), 48)
         emptyIcon  = os.path.join(addonPath,'empty_icon.png')
 
         icon = Image.open(emptyIcon)
         draw = ImageDraw.Draw(icon)
-        awayTeamLogo = Image.open(os.path.join(addonPath,awayTeam['logo']))
-        icon.paste(awayTeamLogo, (10,60+1), awayTeamLogo)
-        draw.text((120,60+40), awayTeam['abbreviation'], font = abbFont, fill="black")
-        homeTeamLogo = Image.open(os.path.join(addonPath,homeTeam['logo']))
-        icon.paste(homeTeamLogo, (10,60+98+1), homeTeamLogo)
-        draw.text((120,60+98+40), homeTeam['abbreviation'], font = abbFont, fill="black")
+        
+        awayTeam = teams[awayTeam.lower()] if awayTeam.lower() in teams else awayTeam
+        homeTeam = teams[homeTeam.lower()] if homeTeam.lower() in teams else homeTeam
+        awayTeamText = awayTeam['abbreviation'] if 'abbreviation' in awayTeam else awayTeam['shortName'][:14] if 'shortName' in awayTeam else awayTeam[:14]
+        homeTeamText = homeTeam['abbreviation'] if 'abbreviation' in homeTeam else homeTeam['shortName'][:14] if 'shortName' in homeTeam else homeTeam[:14]
+        
+        if 'logo' in awayTeam:
+            awayTeamLogo = Image.open(os.path.join(addonPath,awayTeam['logo']))
+            icon.paste(awayTeamLogo, (10,60+1), awayTeamLogo)
+            draw.text((115,60+35), awayTeamText, font = abbFont, fill="black")
+        else:
+            draw.text((10,60+35), awayTeamText, font = abbFont, fill="black")
+        if 'logo' in homeTeam:
+            homeTeamLogo = Image.open(os.path.join(addonPath,homeTeam['logo']))
+            icon.paste(homeTeamLogo, (10,60+98+1), homeTeamLogo)
+            draw.text((115,60+98+35), homeTeamText, font = abbFont, fill="black")
+        else:
+            draw.text((10,60+98+35), homeTeamText, font = abbFont, fill="black")
         ftLogo = self.feedTypeLogo(feedType,homeTeam,awayTeam)
         if ftLogo is not None:
           icon.paste(ftLogo, (10,6,10+48,6+48), ftLogo)
-          draw.text((65, 16), header, font = headerFont, fill="black")
+          draw.text((65, 16), header.replace(' - ',' ').replace('   ',' ').replace('  ',' ').replace('[','').replace(']',''), font = headerFont, fill="black")
         else:
-          draw.text((10, 16), header + (' - {0}'.format(feedType) if feedType is not None else ''), font = headerFont, fill="black")
+          draw.text((10, 16), header.replace(' - ',' ').replace('   ',' ').replace('  ',' ').replace('[','').replace(']','') + (' - {0}'.format(feedType) if feedType is not None and feedType != '' else ''), font = headerFont, fill="black")
         if (homeScore is not None and awayScore is not None):
-          draw.text((200, 60+15), awayScore, font = scoresFont, fill="black")
-          draw.text((200, 60+98+15), homeScore, font = scoresFont, fill="black")
+          xScore = 200
+          if int(awayScore) > 99:
+            xScore = 170
+          elif int(awayScore) > 9:
+            xScore = 190
+          draw.text((xScore, 60+15), awayScore, font = scoresFont, fill="black")
+          xScore = 200
+          if int(homeScore) > 99:
+            xScore = 170
+          elif int(homeScore) > 9:
+            xScore = 190
+          draw.text((xScore, 60+98+15), homeScore, font = scoresFont, fill="black")
         self.image = icon
 
     def filename(self):
@@ -79,11 +101,8 @@ class Icon():
         return saveLocation
 
 def createIcon(homeTeam, awayTeam, header, feedType = None, homeScore = None, awayScore = None):
-    if (showicons and pilSupport and awayTeam.lower() in teams and homeTeam.lower() in teams):
-        if ('logo' in teams[awayTeam.lower()] and 'logo' in teams[homeTeam.lower()]):
-           return Icon(teams[homeTeam.lower()],teams[awayTeam.lower()],header,feedType,homeScore if (showscores) else None,awayScore if (showscores) else None)
-        else:
-           return None
+    if (showicons and pilSupport):
+        return Icon(homeTeam,awayTeam,header,feedType,homeScore if (showscores) else None,awayScore if (showscores) else None)
     else:
         return None
 
