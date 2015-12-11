@@ -1,5 +1,5 @@
 import xbmc, xbmcplugin, xbmcaddon, xbmcgui
-import hockeystreams, utils
+import streams, utils
 import os, datetime, threading, random, time, json, uuid, glob, tempfile, traceback
 try:
   from PIL import Image, ImageDraw, ImageFont
@@ -9,7 +9,6 @@ except ImportError:
 else:
   pilSupport = True
 
-# xbmc-hockey-streams
 # author: craig mcnicholas, swedemon
 # contact: craig@designdotworks.co.uk, zergcollision@gmail.com
 
@@ -97,7 +96,7 @@ class Icon():
         except:
           e = sys.exc_info()[0]
           print 'Could not save icon: %s' % e
-          saveLocation = 'special://home/addons/' + addonId + '/Ice-Hockey-icon.png'
+          saveLocation = 'special://home/addons/' + addonId + '/Main_icon.png'
         return saveLocation
 
 def createIcon(homeTeam, awayTeam, header, feedType = None, homeScore = None, awayScore = None):
@@ -164,7 +163,7 @@ def ONDEMAND_BYDATE(session):
     print 'ONDEMAND_BYDATE(session)'
 
     # Retrieve the available dates
-    dates = hockeystreams.onDemandDates(session)
+    dates = streams.onDemandDates(session)
 
     # Find unique months/years
     monthsYears = []
@@ -203,7 +202,7 @@ def ONDEMAND_BYDATE_YEARMONTH(session, year, month):
     print 'Month: ' + str(month)
 
     # Retrieve the available dates
-    dates = hockeystreams.onDemandDates(session)
+    dates = streams.onDemandDates(session)
 
     # Find unique days
     days = []
@@ -239,7 +238,7 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY(session, year, month, day):
     # Retrieve the events
     date = datetime.date(year, month, day)
     try:
-        events = hockeystreams.dateOnDemandEvents(session, date, showScoresOnDemand)
+        events = streams.dateOnDemandEvents(session, date, showScoresOnDemand)
     except Exception as e:
         print 'Warning:  No events found for date: ' + str(date) + ' Msg: ' + str(e)
         return
@@ -316,7 +315,7 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, eventId, feedType, dateStr):
     print 'dateStr: ' + dateStr
 
     # Build streams
-    onDemandStream = hockeystreams.onDemandEventStreams(session, eventId, location)
+    onDemandStream = streams.onDemandEventStreams(session, eventId, location)
 
     totalItems = 10 # max possible
 
@@ -504,7 +503,7 @@ def ONDEMAND_BYTEAM(session):
     print 'ONDEMAND_BYTEAM(session)'
 
     # Retrieve the teams
-    teams = hockeystreams.teams(session)
+    teams = streams.teams(session)
 
     # Count total number of items for ui
     totalItems = len(teams)
@@ -535,7 +534,7 @@ def ONDEMAND_BYTEAM_LEAGUE(session, league):
     print 'League: ' + str(league)
 
     # Retrieve the teams
-    teams = hockeystreams.teams(session, league)
+    teams = streams.teams(session, league)
 
     # Count total number of items for ui
     totalItems = len(teams)
@@ -564,7 +563,7 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM(session, league, team):
     print 'Team: ' + team
 
     # Retrieve the team events
-    events = hockeystreams.teamOnDemandEvents(session, hockeystreams.Team(team))
+    events = streams.teamOnDemandEvents(session, streams.Team(team))
 
     totalItems = len(events)
     for event in events:
@@ -621,10 +620,10 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
     print 'Date: ' + str(date)
     highlights = []
     if showhighlight:
-      highlights = hockeystreams.dateOnDemandHighlights(session, date, team)
+        highlights = streams.dateOnDemandHighlights(session, date, team)
     condensedGames = []
     if showcondensed:
-      condensedGames = hockeystreams.dateOnDemandCondensed(session, date, team)
+        condensedGames = streams.dateOnDemandCondensed(session, date, team)
       
     allMedia = highlights + condensedGames
     totalItems = len(allMedia)
@@ -656,7 +655,7 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
             if awayTeam == '' or homeTeam == '': # Indicates special event
                 matchupStr = awayTeam + homeTeam
             # Build title
-            prefix = 'Highlights' if isinstance(media, hockeystreams.Highlight) else 'Condensed'
+            prefix = 'Highlights' if isinstance(media, streams.Highlight) else 'Condensed'
             title = '[' + prefix + '] ' + media.event + ': ' + matchupStr + dateStr
 
             def icon(url,suffix):
@@ -681,7 +680,7 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT(session, eventId, feedType, dateStr):
     print 'dateStr: ' + str(dateStr)
 
     # Build streams
-    onDemandStream = hockeystreams.onDemandEventStreams(session, eventId, location)
+    onDemandStream = streams.onDemandEventStreams(session, eventId, location)
 
     totalItems = 6 # max possible
 
@@ -772,7 +771,7 @@ def LIVE(session):
     print 'LIVE(session)'
 
     # Find live events
-    events = hockeystreams.liveEvents(session)
+    events = streams.liveEvents(session)
 
     totalItems = len(events) + 2
 
@@ -859,7 +858,7 @@ def buildLiveEvents(session, events, totalItems, filter):
             title = prefix + '[COLOR red][B]' + event.event + ': ' + matchupStr + scoreStr + periodStr + startTimeStr + feedStr + '[/B][/COLOR]'
 
         if event.isFinal:
-            now = hockeystreams.adjustedDateTime()
+            now = streams.adjustedDateTime()
             team = event.homeTeam if event.homeTeam != None and event.homeTeam != '' else event.awayTeam
             params = {
                 'year': str(now.year),
@@ -891,7 +890,7 @@ def LIVE_EVENT(session, eventId):
     print 'eventId: ' + eventId
 
     # Build streams
-    liveStream = hockeystreams.liveEventStreams(session, eventId, location)
+    liveStream = streams.liveEventStreams(session, eventId, location)
 
     totalItems = 15 # max possible
 
@@ -1012,7 +1011,7 @@ def LIVE_FINALEVENT(session, year, month, day, team, feedType):
     # Retrieve the events
     date = datetime.date(year, month, day)
     try:
-        events = hockeystreams.dateOnDemandEvents(session, date)
+        events = streams.dateOnDemandEvents(session, date, showScoresOnDemand)
     except Exception as e:
         print 'Warning:  No events found for date: ' + str(date) + ' Msg: ' + str(e)
         return
@@ -1037,7 +1036,7 @@ def LIVEEVENT(session):
     print 'LIVEEVENT(session)'
 
     # Find live events
-    events = hockeystreams.liveEvents(session)
+    events = streams.liveEvents(session)
 
     totalItems = len(events) + 2
 
@@ -1125,7 +1124,7 @@ def buildLiveStreams(session, events, totalItems, filter):
             title = prefix + '[COLOR red][B]' + event.event + ': ' + matchupStr + scoreStr + periodStr + startTimeStr + feedStr + '[/B][/COLOR]'
 
         if event.isFinal:
-            now = hockeystreams.adjustedDateTime()
+            now = streams.adjustedDateTime()
             team = event.homeTeam if event.homeTeam != None and event.homeTeam != '' else event.awayTeam
             params = {
                 'year': str(now.year),
@@ -1184,7 +1183,7 @@ def ONDEMAND_RECENT(session):
     i = 0
     while i <= int(daysback):
         # get current date
-        recentDate = hockeystreams.getRecentDateTime(i)
+        recentDate = streams.getRecentDateTime(i)
 
         # Build events for day
         ONDEMAND_BYDATE_YEARMONTH_DAY(session, recentDate.year, recentDate.month, recentDate.day)
@@ -1300,7 +1299,7 @@ refresh = refresh != None and refresh.lower() == 'true'
 
 # First check invalid stream else find mode and execute
 if invalid:
-    print 'Stream unavailable, please check hockeystreams.com for wmv stream availability.'
+    print 'Stream unavailable, please check streams.com for wmv stream availability.'
     utils.showMessage(addon.getLocalizedString(100003), addon.getLocalizedString(100004))
 
 # Check if username/password has been provided
@@ -1321,24 +1320,24 @@ cacheToDisc = True
 session = None
 if settingsInvalid == False:
     try:
-        session = hockeystreams.login(username, password)
-    except hockeystreams.ApiException as e:
-        print 'Error logging into hockeystreams.com account: ' + str(e)
+        session = streams.login(username, password)
+    except streams.ApiException as e:
+        print 'Error logging into streams.com account: ' + str(e)
 
 # Check login status and membership status
 if session == None:
     mode = utils.Mode.HOME
-    print 'The hockeystreams.com session was null, login failed'
+    print 'The streams.com session was null, login failed'
     utils.showMessage(addon.getLocalizedString(100011), addon.getLocalizedString(100012))
 elif session.isPremium == False:
     mode = utils.Mode.HOME
-    print 'The hockeystreams.com account membership is non-premium, a paid for account is required'
+    print 'The streams.com account membership is non-premium, a paid for account is required'
     utils.showMessage(addon.getLocalizedString(100013), addon.getLocalizedString(100014))
 else:
     # Attempt to create IP exception
     try:
         print 'Attempting to generate IP exception'
-        ipException = hockeystreams.ipException(session)
+        ipException = streams.ipException(session)
     except Exception as e:
         print 'Error creating an ip exception: ' + str(e)
         utils.showMessage(addon.getLocalizedString(100018), addon.getLocalizedString(100019))

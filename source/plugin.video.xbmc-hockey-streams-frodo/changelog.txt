@@ -37,7 +37,7 @@
 - Changed:  Resolution moved separately to Live and OnDemand settings
 
 [b]3.0.7[/b]
-- Fixed: Fix to API changes related to on-demand streams
+- Fixed: Fix to address recent changes to API on-demand streams
 
 [b]3.0.6[/b]
 - Changed: Moved Live Streams to the front page (one less click!)
@@ -52,6 +52,9 @@
 [b]3.0.3[/b]
 - Added: Alternate Live category added which directly displays streams at the event level
 - Changed: Display light green to indicate feed type (home or away) instead of the difficult to see asterisk
+
+[b]3.0.2[/b]
+- Fixed: Script error addressed in default script
 
 [b]3.0.1[/b]
 - Changed: On-demand by date displays favorite team at the top
@@ -78,27 +81,33 @@
 - Added: Progressive stream support added - expert setting in beta
 - Added: Refresh added at the top when several live events displayed
 - Changed: Coming soon events also display above final events
-- Changed: Eliminate redundant iStream when duplicates HD or SD stream
-- Changed: Flash events now specify HD or SD when stream URL indicates
+
+[b]2.9.7[/b]
+- Added: Choosing final event now leads directly to on-demand streams
+- Added: Added refresh option at the top of live events when the list is large
 - Changed: Live events now show at the top
-- Changed: View Mode includes thumbnail and extends to all directories
+- Changed: Flash events now specify HD or SD when stream URL indicates
 - Fixed: Eliminated defunct progressive streams
 - Fixed: Fixed bug that prevented condensed game building
-- Fixed: Home and away indicators fixed within On-Demand event screens
-- Fixed: Removed league filter within on-demand byteam event filter where it didn't make sense
+
+[b]2.9.6[/b]
+- Changed: Eliminate redundant iStream when duplicates HD or SD stream
+- Added: Refresh added at the top when several live events displayed
 - Fixed: Standardized plugin directory name
 
 [b]2.9.5[/b]
-- Fixed: Corrected elusive highlights function call
-- Fixed: Fix to live title text for favorite team
+- Added: Custom date search to on-demand section
+- Added: All teams option added under by team category
+- Added: OnDemand team filter includes similar events i.e. NHL includes NHL preseason
+- Added: Progressive stream support added - expert setting in beta
+- Changed: View Mode includes thumbnail and extends to all directories
+- Fixed: Removed league filter within on-demand byteam event filter where it didn't make sense
 
 [b]2.9.4[/b]
-- Fixed: OnDemand settings category name corrected
 - Fixed: Eliminate condensed games that duplicate highlights (which seems to be all the time)
-- Changed: Added logic to proceed in the case that highlights fail to build (still researching long term fix)
+- Fixed: Fixed logic to correct highlight building
 
 [b]2.9.3[/b]
-- Changed: Transitioned latest code from BallStreams addon
 - Added: Favorite team is bolded - defined on website
 - Added: New league filter setting for hockeystreams
 - Fixed: Tweaks added to correctly determine status of live games
@@ -139,7 +148,7 @@
 [b]2.8.6[/b]
 - Added: Indicate home or away feed with asterisk for inactive events
 - Added: Filter by HD only or SD only option
-- Added: Display basketball image and fanart.jpg
+- Added: Display main image and fanart.jpg
 - Added: Display score and period for live games
 - Fixed: Also display FINAL after over-time games terminate
 - Fixed: IP Exception failure message properly notifies issue
@@ -164,10 +173,10 @@
 - Added: north america - east canada as a streaming location
 
 [b]2.8.0[/b]
-- Removed: ip check removed, got the go-ahead from hockeystreams
+- Removed: ip check removed got the go-ahead from website
 
 [b]2.7.1[/b]
-- Fixed: hockeystreams api change now returning null for streams and empty dates
+- Fixed: api change now returning null for streams and empty dates
 
 [b]2.7.0[/b]
 - Added: location setting so users can define which servers they want to use

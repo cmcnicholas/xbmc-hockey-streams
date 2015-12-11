@@ -1,14 +1,15 @@
 import urllib, urllib2, datetime, time, json, os, traceback
 
-# xbmc-hockey-streams
-# author: craig mcnicholas, swedemon
+# author: craig mcnicholas, swedemon (since v2.8.2)
 # contact: craig@designdotworks.co.uk, zergcollision@gmail.com
 
-# Set debug to True to print API results to the xbmc.log
+# Set debug to True to print API results to the kodi.log
 API_DEBUG = False
+WEBURL = 'hockeystreams.com'
+HEADER_NAME = 'xbmc-hockey-streams'
 
 # Represents a session class which contains a users login
-# session information from hockeystreams
+# session information from website
 class Session():
 
     # Creates a new session instance
@@ -201,13 +202,13 @@ class ApiException(Exception):
     def __str__(self):
         return repr(self.value)
 
-# Method to attempt a login to a hockeystreams account
+# Method to attempt a login to a website account
 # @param username the username to login with
 # @param password the password to login with
 # @throws ApiException when a login fails due to parsing or an incorrect account
 # @return the session instance to use for subsequent requests
 def login(username, password):
-    # The applications api key, generated @ https://www6.hockeystreams.com/api
+    # The applications api key, generated @ website
     API_KEY = '4634a40ecc7a541d6548e30f8a7c9bb1'
 
     # Setup login request data
@@ -218,7 +219,7 @@ def login(username, password):
     })
     
     # Create url
-    url = 'https://api.hockeystreams.com/Login'
+    url = 'https://api.'+WEBURL+'/Login'
 
     # Get login response
     request = __setupRequest(url)
@@ -279,7 +280,7 @@ def checkIp(username):
     })
     
     # Create url
-    url = 'https://www6.hockeystreams.com/scripts/check_ip.php?' + data
+    url = 'https://www6.'+WEBURL+'/scripts/check_ip.php?' + data
 
     # Get response for ip check
     request = __setupRequest(url)
@@ -303,7 +304,7 @@ def getScores(date):
     'key': API_KEY,
     'date': date
   })
-  url = 'https://api.hockeystreams.com/Scores?' + data
+  url = 'https://api.'+WEBURL+'/Scores?' + data
   # Get response for events
   request = __setupRequest(url)
   response = urllib2.urlopen(request)
@@ -330,7 +331,7 @@ def ipException(session):
     })
     
     # Create url
-    url = 'https://api.hockeystreams.com/IPException'
+    url = 'https://api.'+WEBURL+'/IPException'
 
     # Get response for ip exception
     request = __setupRequest(url)
@@ -348,7 +349,7 @@ def ipException(session):
 
     return True
 
-# Method to retrieve available archived dates for hockey streams
+# Method to retrieve available archived dates
 # @param session the session details to login with
 # @return a list of available dates
 def onDemandDates(session):
@@ -358,7 +359,7 @@ def onDemandDates(session):
     })
     
     # Create url
-    url = 'https://api.hockeystreams.com/GetOnDemandDates?' + data
+    url = 'https://api.'+WEBURL+'/GetOnDemandDates?' + data
 
     # Get response for available dates
     request = __setupRequest(url)
@@ -394,7 +395,7 @@ def onDemandDates(session):
 
     return results
 
-# Method to retrieve available teams for hockey streams
+# Method to retrieve available teams
 # @param session the session details to login with
 # @return a list of teams
 def teams(session, league = None):
@@ -404,7 +405,7 @@ def teams(session, league = None):
     })
     
     # Create url
-    url = 'https://api.hockeystreams.com/ListTeams?' + data
+    url = 'https://api.'+WEBURL+'/ListTeams?' + data
 
     # Get response for teams
     request = __setupRequest(url)
@@ -463,7 +464,7 @@ def dateOnDemandEvents(session, date, withScores = False):
         'date': month + '/' + day + '/' + year
     })
 
-    url = 'https://api.hockeystreams.com/GetOnDemand?' + data
+    url = 'https://api.'+WEBURL+'/GetOnDemand?' + data
     scores = getScores(month + '/' + day + '/' + year) if withScores else []
     
     return parseOnDemandEvents(url, scores)
@@ -503,7 +504,7 @@ def dateOnDemandHighlights(session, date = None, team = None):
             })
 
     # Create url
-    url = 'https://api.hockeystreams.com/GetHighlights?' + data
+    url = 'https://api.'+WEBURL+'/GetHighlights?' + data
 
     # Get response for events
     request = __setupRequest(url)
@@ -588,7 +589,7 @@ def dateOnDemandCondensed(session, date = None, team = None):
             })
 
     # Create url
-    url = 'https://api.hockeystreams.com/GetCondensedGames?' + data
+    url = 'https://api.'+WEBURL+'/GetCondensedGames?' + data
 
     # Get response for events
     request = __setupRequest(url)
@@ -646,7 +647,7 @@ def teamOnDemandEvents(session, team, withScores = False):
     })
 
     # Create url
-    url = 'https://api.hockeystreams.com/GetOnDemand?' + data
+    url = 'https://api.'+WEBURL+'/GetOnDemand?' + data
 
     return parseOnDemandEvents(url,[])
 
@@ -729,7 +730,7 @@ def onDemandEventStreams(session, eventId, location=None):
     data = urllib.urlencode(data)
 
     # Create url
-    url = 'https://api.hockeystreams.com/GetOnDemandStream?' + data
+    url = 'https://api.'+WEBURL+'/GetOnDemandStream?' + data
 
     # Get response for events for date
     request = __setupRequest(url)
@@ -876,7 +877,7 @@ def liveEvents(session):
     })
 
     # Create url
-    url = 'https://api.hockeystreams.com/GetLive?' + data
+    url = 'https://api.'+WEBURL+'/GetLive?' + data
     
     # Get response for events
     request = __setupRequest(url)
@@ -974,7 +975,7 @@ def liveEventStreams(session, eventId, location=None):
     data = urllib.urlencode(data)
 
     # Create url
-    url = 'https://api.hockeystreams.com/GetLiveStream?' + data
+    url = 'https://api.'+WEBURL+'/GetLiveStream?' + data
 
     # Get response for events for date
     request = __setupRequest(url)
@@ -1245,12 +1246,12 @@ def getRecentDateTime(daysBack = 0):
     now = datetime.datetime.now()
     return now - datetime.timedelta(daysBack)
 
-# Method to setup a request object to hockeystreams
+# Method to setup a request object
 # @param url the url to setup the request to
 # @return an urllib2.Request object
 def __setupRequest(url):
     request = urllib2.Request(url)
-    request.add_header('From', 'xbmc-hockey-streams')
+    request.add_header('From', HEADER_NAME)
 
     return request
 

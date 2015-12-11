@@ -3,7 +3,6 @@ import urllib, httplib
 from urlparse import urlparse
 import sys
 
-# xbmc-hockey-streams
 # author: craig mcnicholas, swedemon
 # contact: craig@designdotworks.co.uk, zergcollision@gmail.com
 
@@ -90,7 +89,7 @@ def urlExists(url):
 # @return a flag indicating success
 def addLink(name, url, image, totalItems = None, showfanart = None, icon = None):
     ok = True
-    thumbnail = icon.save() if (icon) else 'special://home/addons/' + addonId + '/Ice-Hockey-icon.png'
+    thumbnail = icon.save() if (icon) else 'special://home/addons/' + addonId + '/Main_icon.png'
     item = xbmcgui.ListItem(name, iconImage = 'DefaultVideo.png', thumbnailImage = thumbnail)
     item.setInfo(type = 'Video', infoLabels = { 'Title': name })
     if showfanart:
@@ -109,7 +108,7 @@ def addLink(name, url, image, totalItems = None, showfanart = None, icon = None)
 # @param totalItems [optional] the total number of items to add to show progress
 # @return a flag indicating success
 def addDir(name, mode, image, params, totalItems = None, showfanart = None, icon = None):
-    thumbnail = icon.save() if (icon) else 'special://home/addons/' + addonId + '/Ice-Hockey-icon.png'
+    thumbnail = icon.save() if (icon) else 'special://home/addons/' + addonId + '/Main_icon.png'
     if '<< Refresh >>' in name:
         thumbnail = 'special://home/addons/' + addonId + '/Refresh_icon.png'
     url = sys.argv[0] + "?mode=" + str(mode)

@@ -95,7 +95,7 @@ msgid "forgot to close a stream on another device."
 msgstr ""
 
 msgctxt "#100024"
-msgid "For help contact hockeystreams.com"
+msgid "For help contact website"
 msgstr ""
 
 msgctxt "#100025"
