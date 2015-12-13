@@ -5,7 +5,11 @@ import urllib, urllib2, datetime, time, json, os, traceback
 
 # Set debug to True to print API results to the kodi.log
 API_DEBUG = False
+# The applications api keys, generated @ website
+API_KEY = '4634a40ecc7a541d6548e30f8a7c9bb1'
+SCORE_API_KEY = '0d2fda77ef1b3ed5a7bae58572d6fbda'
 WEBURL = 'hockeystreams.com'
+WEBURL_PREFIX = 'www6'
 HEADER_NAME = 'xbmc-hockey-streams'
 
 # Represents a session class which contains a users login
@@ -208,9 +212,6 @@ class ApiException(Exception):
 # @throws ApiException when a login fails due to parsing or an incorrect account
 # @return the session instance to use for subsequent requests
 def login(username, password):
-    # The applications api key, generated @ website
-    API_KEY = '4634a40ecc7a541d6548e30f8a7c9bb1'
-
     # Setup login request data
     data = urllib.urlencode({
         'username': username,
@@ -280,7 +281,7 @@ def checkIp(username):
     })
     
     # Create url
-    url = 'https://www6.'+WEBURL+'/scripts/check_ip.php?' + data
+    url = 'https://'+WEBURL_PREFIX+'.'+WEBURL+'/scripts/check_ip.php?' + data
 
     # Get response for ip check
     request = __setupRequest(url)
@@ -299,9 +300,8 @@ def checkIp(username):
 # @param date the date to get the scores for
 # @return the scores structure
 def getScores(date):
-  API_KEY = '0d2fda77ef1b3ed5a7bae58572d6fbda'
   data = urllib.urlencode({
-    'key': API_KEY,
+    'key': SCORES_API_KEY,
     'date': date
   })
   url = 'https://api.'+WEBURL+'/Scores?' + data
