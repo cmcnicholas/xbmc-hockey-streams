@@ -11,6 +11,6 @@ The Xbmc Hockey Streams plugin currently offers the following set of features.
 * Searching for streams by team
 * List upcoming streams
 
-Download the [latest release here](https://github.com/fungus1487/xbmc-hockey-streams/raw/master/downloads/plugin.video.xbmc-ball-streams-gotham-3.1.9.zip).
+Download the [latest release here](https://github.com/fungus1487/xbmc-hockey-streams/raw/master/downloads/plugin.video.xbmc-hockey-streams-gotham-3.1.9.zip).
 
-Recommended, for automatic updates download the [Ballstreams Repository](https://github.com/fungus1487/xbmc-hockey-streams/raw/master/downloads/repository.xbmc-ball-streams-0.0.1.zip) and install the addon via the repo.
+Recommended, for automatic updates download the [HockeyStreams Repository](https://github.com/fungus1487/xbmc-hockey-streams/raw/master/downloads/repository.xbmc-hockey-streams-0.0.1.zip) and install the addon via the repo.
