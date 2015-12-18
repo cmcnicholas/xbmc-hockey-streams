@@ -856,7 +856,7 @@ def buildLiveEvents(session, events, totalItems, filter):
             params = {
                 'eventId': event.eventId
             }
-            icon = createIcon(event.homeTeam,event.awayTeam, event.period, event.feedType, homeScore, awayScore)
+            icon = createIcon(event.homeTeam,event.awayTeam, event.period if event.period is not None and event.period != '' else event.startTime if event.startTime is not None and event.startTime != '' else '', event.feedType, homeScore, awayScore)
             utils.addDir(title, utils.Mode.LIVE_EVENT, '', params, totalItems, showfanart, icon)
 
 # Method to draw the live streams screen

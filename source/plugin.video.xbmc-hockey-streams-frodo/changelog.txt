@@ -1,4 +1,7 @@
 [b]3.2.0[/b]
+- Fixed: Header icon fix applied for a live scenario
+
+[b]3.2.0[/b]
 - Changed: Improved working indicator logic
 - Fixed: Addressed missing icons bug
 
